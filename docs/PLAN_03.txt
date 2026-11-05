@@ -1,0 +1,216 @@
+Here is the complete source code for **Step #2**. All files follow Mozilla's WebExtensions Manifest V3 guidelines, adhere to clean code practices, and support automatic Firefox/LibreWolf theme matching (dark and light mode) across Linux and Windows.
+
+---
+
+### Project File Structure
+
+Create a root directory named `your-tubes-feed` with the following structure:
+
+```text
+your-tubes-feed/
+├── manifest.json
+├── sidebar/
+│   ├── sidebar.html
+│   ├── sidebar.css
+│   └── sidebar.js
+└── icons/
+    └── icon.svg
+
+```
+
+---
+
+### File Code Implementation
+
+#### 1. `manifest.json`
+
+```json
+{
+  "manifest_version": 3,
+  "name": "FeedTubes",
+  "version": "1.0.0",
+  "description": "Displays your custom YouTube feed directly in the Firefox/LibreWolf sidebar.",
+  "icons": {
+    "48": "icons/icon.svg",
+    "96": "icons/icon.svg"
+  },
+  "sidebar_action": {
+    "default_title": "FeedTubes",
+    "default_panel": "sidebar/sidebar.html",
+    "default_icon": "icons/icon.svg"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "feedtubes@extension.local",
+      "strict_min_version": "109.0"
+    }
+  }
+}
+
+```
+
+---
+
+#### 2. `sidebar/sidebar.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FeedTubes</title>
+  <link rel="stylesheet" href="sidebar.css">
+</head>
+<body>
+  <div class="sidebar-container">
+    <header class="sidebar-header">
+      <img src="../icons/icon.svg" alt="App Icon" class="header-icon">
+      <h1>FeedTubes</h1>
+    </header>
+
+    <main class="sidebar-content">
+      <div class="card">
+        <h2>Hello World</h2>
+        <p>FeedTubes sidebar panel is successfully loaded and ready for YouTube content integration.</p>
+      </div>
+    </main>
+  </div>
+
+  <script src="sidebar.js"></script>
+</body>
+</html>
+
+```
+
+---
+
+#### 3. `sidebar/sidebar.css`
+
+```css
+/* Respect native browser theme tokens with fallback defaults */
+:root {
+  --bg-primary: var(--in-content-page-background, #1c1b22);
+  --bg-card: var(--in-content-box-background, #2b2a33);
+  --text-primary: var(--in-content-page-color, #f9f9fb);
+  --text-secondary: var(--in-content-deemphasized-text, #bfbfc9);
+  --accent-color: #ff0000; /* YouTube Brand Red */
+  --border-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-primary: #ffffff;
+    --bg-card: #f0f0f4;
+    --text-primary: #15141a;
+    --text-secondary: #5b5b66;
+    --border-color: rgba(0, 0, 0, 0.1);
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-container {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 16px;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.header-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.sidebar-header h1 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.card h2 {
+  font-size: 0.95rem;
+  margin-bottom: 6px;
+  color: var(--accent-color);
+}
+
+.card p {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+```
+
+---
+
+#### 4. `sidebar/sidebar.js`
+
+```javascript
+/**
+ * FeedTubes - Sidebar Initialization
+ */
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("FeedTubes sidebar initialized successfully.");
+
+  // Ready for future feed fetchers and event listeners
+});
+
+```
+
+---
+
+#### 5. `icons/icon.svg`
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <rect width="48" height="48" rx="10" fill="#FF0000" />
+  <polygon points="19,14 34,24 19,34" fill="#FFFFFF" />
+</svg>
+```
+
+---
+
+### Step #3: Testing & Local Installation Instructions
+
+#### **On Linux & Windows (LibreWolf / Firefox):**
+
+1. Open LibreWolf or Firefox.
+2. In the address bar, type `about:debugging` and press **Enter**.
+3. Click **This Firefox** (or **This LibreWolf**) on the left panel.
+4. Click **Load Temporary Add-on...**
+5. Navigate to the `your-tubes-feed` folder and select the `manifest.json` file.
+6. Open the sidebar via the browser menu or shortcut (`Ctrl+Sidebar` or `Alt + View > Sidebar > FeedTubes`), and select **FeedTubes**.

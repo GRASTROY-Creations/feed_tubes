@@ -1,0 +1,9 @@
+Task: Creation of a FireFox (LibreWolf) 159 and upper Extension:
+- Follow Official Clean Code and Best Practise Approach of LibreWolf/Firefox Guidelines!
+- It should add a Entry "FeedTubes" Page to Firefox's Sidebar
+- Right now the Page should just show a Simple Hello World - to be replaced later by more content
+- Should work on Linux and Windows
+- Markdown Docs go into /docs
+
+Step #1:
+Create Full in-Depth AI-Coding Agent Execution Plan

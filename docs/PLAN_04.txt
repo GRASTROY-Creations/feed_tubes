@@ -1,0 +1,11 @@
+#1 Please Research PeerTube's and FreeTube's CSV Subscription Management and Propose CSV Based Subscription Feed, We need to Support YouTube, VKVideo, Rutube, PeerTube Instances, Odysee, // Optional also Bilibili, Rumble, Dailymotion,
+#2
+All Subscriptions should be JSON, CSV or similar file based.
+#3
+All Instances can be managed in a Settings Tab of the FeedTubes's Page.
+#4
+On Click onto a Feed's Entry it should open in a new Firefox/LibreWolf Tab.
+#5 Feed Entries are listed with Preview Thumbnail, Source, Source Channel and Title as well as Published/Uploaded Date
+
+Make Detailed Plan for all Requirements
+ after #1 Research

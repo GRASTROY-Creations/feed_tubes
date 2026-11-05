@@ -1,0 +1,154 @@
+Here is the comprehensive, detailed execution plan addressing all requirements for expanding **FeedTubes** into a multi-platform subscription feed aggregator with file-based importing/exporting (JSON/CSV), instance settings management, and rich feed interaction.
+
+---
+
+# Detailed Plan: FeedTubes Subscription Aggregator & Settings Architecture
+
+## #1 PeerTube & FreeTube Subscription Standards Research & Unified CSV Proposal
+
+### Research Findings:
+
+* **FreeTube & YouTube CSV Format:** FreeTube imports subscriptions directly from YouTube Takeout CSV formats. The standard YouTube subscriptions CSV structure consists of:
+* `Channel ID`, `Channel Url`, `Channel Title`
+
+
+* **PeerTube Subscription Exports:** PeerTube allows full data and subscription exports, exposing account subscription lists via REST APIs (`/api/v1/users/me/subscriptions`) containing channel URIs, handles, and host instances.
+* **Unified Subscription Challenge:** Because our aggregator handles multiple networks (**YouTube, VKVideo, Rutube, PeerTube Instances, Odysee, and optional Bilibili, Rumble, Dailymotion**), a rigid single-platform schema is insufficient.
+
+### Proposed Unified CSV & JSON Subscription Format Specification:
+
+To natively support all target platforms while maintaining compatibility with standard CSV tools and FreeTube/PeerTube paradigms, we define a **Unified 5-Column CSV Schema** and its corresponding **JSON Export schema**:
+
+#### **Unified CSV Schema (`subscriptions.csv`)**
+
+```csv
+platform,instance_url,channel_id,channel_name,enabled
+youtube,https://www.youtube.com,UC_x5XG1OV2P6uZZ5FSM9Ttw,FreeCodeCamp,true
+peertube,https://video.ploud.fr,peertube_chan_1,Ploud Science,true
+odysee,https://odysee.com,@OdyseeHelp,Odysee Help,true
+vkvideo,https://vk.com,video_public_id,VK Video Channel,true
+rutube,https://rutube.co,rutube_channel_id,Rutube Creator,true
+rumble,https://rumble.com,RumbleChannel,Rumble Creator,false
+
+```
+
+* **Columns:**
+1. `platform`: Service identifier (`youtube`, `peertube`, `odysee`, `vkvideo`, `rutube`, `bilibili`, `rumble`, `dailymotion`).
+2. `instance_url`: Base URL for decentralized platforms (e.g., specific PeerTube node URLs like `[https://peertube.social](https://peertube.social)` or main domain for centralized ones).
+3. `channel_id`: Unique platform-specific channel handle, UC ID, or account string.
+4. `channel_name`: Human-readable display name for the channel.
+5. `enabled`: Boolean toggle (`true`/`false`) allowing users to mute or disable feeds without deleting them.
+
+
+
+#### **Unified JSON Schema (`subscriptions.json`)**
+
+```json
+{
+  "version": "1.0",
+  "exportedAt": "2026-06-06T00:00:00.000Z",
+  "subscriptions": [
+    {
+      "platform": "peertube",
+      "instanceUrl": "https://video.ploud.fr",
+      "channelId": "peertube_chan_1",
+      "channelName": "Ploud Science",
+      "enabled": true
+    }
+  ]
+}
+
+```
+
+---
+
+## #2 File-Based Storage Layer (JSON / CSV Import & Export)
+
+* **Browser Storage Mechanism:** We will utilize the browser's `indexedDB` (via a lightweight wrapper) or `browser.storage.local` to maintain subscriptions and user configurations persistently across browser restarts on Linux and Windows.
+* **Import Workflow:**
+1. A file picker input (`<input type="file" accept=".csv, .json">`) will be added to the Settings tab.
+2. A parsing utility reads the file text:
+* If file extension is `.json`, parse via `JSON.parse()` and validate schema.
+* If file extension is `.csv`, split by lines, parse header columns, and map rows into subscription objects.
+
+
+3. Merge imported items with existing storage (deduplicating by `platform` + `channel_id` + `instance_url`).
+
+
+* **Export Workflow:**
+1. User clicks **"Export Subscriptions"** in settings.
+2. Data is dynamically serialized into either CSV format or JSON string.
+3. A virtual Blob object is constructed (`new Blob([data], { type: 'text/csv' })`), and an invisible anchor tag triggers an automatic file download (`feedtubes-subscriptions.csv`).
+
+
+
+---
+
+## #3 Instance & Source Management Settings Tab
+
+The sidebar interface will be upgraded from a single view to a **Tabbed Navigation Interface** inside the sidebar panel or via an expanded options page:
+
+* **Tabs Layout:**
+1. 📺 **Feed:** Displays the aggregated video cards stream.
+2. ⚙️ **Settings:** Manages subscriptions and platform instance endpoints.
+
+
+* **Settings Panel Features:**
+* **Instance Endpoints Override Manager:** Allows configuring default or custom instance URLs for federated networks (e.g., adding/removing preferred PeerTube instances).
+* **Import / Export Data Cards:** Dedicated buttons for uploading subscription files (`.csv`/`.json`) and downloading backups.
+* **Channel Management Table:** A searchable list of all current subscriptions with individual delete and enable/disable toggles.
+
+
+
+---
+
+## #4 Opening Feeds in New Firefox/LibreWolf Tabs (`#4`)
+
+* **Implementation Mechanism:** When a user clicks any video card entry in the sidebar feed, it must open in a brand-new browser tab without disrupting the sidebar state.
+* **Code Implementation via WebExtensions API (`browser.tabs.create`):**
+```javascript
+document.addEventListener('click', (event) => {
+  const card = event.target.closest('.video-card');
+  if (card && card.dataset.videoUrl) {
+    // Opens the video URL in a new foreground tab in Firefox / LibreWolf
+    browser.tabs.create({ url: card.dataset.videoUrl, active: true });
+  }
+});
+
+```
+
+
+* **Required Manifest Permissions:** Add `"tabs"` permission to `manifest.json` (or leverage active handling) to guarantee cross-platform execution on Linux and Windows.
+
+---
+
+## #5 Rich Feed Entry Layout Structure (`#5`)
+
+Each item rendered in the feed will display structured metadata cards containing:
+
+1. **Preview Thumbnail:** Responsive image banner (`<img>`) fetched from the platform's API/media proxy.
+2. **Source Badge / Icon:** Small platform badge indicating whether it's YouTube, PeerTube, Odysee, VKVideo, Rutube, etc.
+3. **Source Channel Name:** Clear attribution text showing the creator/channel.
+4. **Title:** Bold, truncated-multi-line title of the video item.
+5. **Published/Uploaded Date:** Relative human-readable timestamp (e.g., *"2 hours ago"* or *"3 days ago"*).
+
+### Visual Card Wireframe Mockup (`sidebar.css` target):
+
+```html
+<div class="video-card" data-video-url="https://...">
+  <div class="thumbnail-container">
+    <img src="thumbnail_url.jpg" alt="Thumbnail" loading="lazy">
+    <span class="platform-badge peertube">PeerTube</span>
+  </div>
+  <div class="video-meta">
+    <h3 class="video-title">Sample Decentralized Video Title Goes Here...</h3>
+    <div class="channel-info">
+      <span class="channel-name">Ploud Science</span>
+      <span class="upload-date">5 hours ago</span>
+    </div>
+  </div>
+</div>
+
+```
+
+---

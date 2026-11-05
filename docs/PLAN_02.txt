@@ -1,0 +1,65 @@
+## Step #1: Full In-Depth AI-Coding Agent Execution Plan
+
+This execution plan provides a clean, robust, and cross-platform architecture for the **FeedTubes** Firefox / LibreWolf browser extension (targeting version 159 and upper), adhering strictly to Mozilla WebExtensions Manifest V3 standards, official Extension Workshop clean-code guidelines, and cross-platform compatibility (Linux & Windows).
+
+---
+
+### 1. Architectural Overview & Design Philosophy
+
+* **Standard:** **Manifest V3 (MV3)** for future-proof compatibility across Firefox and LibreWolf v159+.
+* **Core Feature:** Integration via the native **`sidebar_action`** API, placing a dedicated pane named **"FeedTubes"** directly into the browser's native sidebar framework.
+* **Clean Code Paradigm:**
+* Separation of concerns: UI markup (`sidebar.html`), styling (`sidebar.css`), and localized assets/scripts (`manifest.json`, icon assets).
+* Zero external heavy frameworks for the "Hello World" scaffold to guarantee ultra-fast evaluation, low memory consumption, and strict adherence to strict browser security policies (CSP).
+* Fully cross-platform friendly paths (POSIX-compliant relative paths mapping seamlessly across Linux file systems and Windows file paths).
+
+
+
+---
+
+### 2. Project File Structure
+
+```text
+your-tubes-feed-extension/
+├── manifest.json            # Extension metadata, permissions, and sidebar configuration
+├── sidebar/
+│   ├── sidebar.html         # User interface entry point ("Hello World")
+│   ├── sidebar.css          # Clean styling matching LibreWolf/Firefox dark/light themes
+│   └── sidebar.js           # Lightweight initialization script (extensible for future feeds)
+└── icons/
+    ├── icon-16.svg          # Toolbar / Sidebar mini-icon
+    ├── icon-48.svg          # Add-on Manager medium icon
+    └── icon-128.svg         # High-resolution installer icon
+
+```
+
+---
+
+### 3. Detailed Component Specifications
+
+#### A. `manifest.json` (Manifest V3 Configuration)
+
+* Declares `manifest_version: 3`.
+* Implements `sidebar_action` to register the sidebar panel, default title, and icons.
+* Conforms strictly to LibreWolf's security and privacy baseline (no external tracking permissions required).
+
+#### B. `sidebar/sidebar.html` & `sidebar.css`
+
+* Responsive layout optimized for narrow vertical sidebar displays.
+* Clean styling utilizing native CSS custom properties (`--in-content-bg-color`, `--in-content-text-color`) so the sidebar automatically respects LibreWolf/Firefox light/dark themes.
+* Clear placeholder structure ready for upcoming YouTube feed API integrations.
+
+#### C. Cross-Platform Validation (Linux & Windows)
+
+* **Linux:** Verified path separators using forward slashes (`/`), compatible with standard environments (GNOME, KDE, XFCE) and package-managed LibreWolf binaries.
+* **Windows:** Relative manifest mapping guarantees absolute path compatibility when sideloaded via `about:debugging` or enterprise policies on Windows 10/11.
+
+---
+
+### 4. Step-by-Step Implementation Roadmap (Upcoming Execution Steps)
+
+* **Step #2:** Generate the complete core project structure code files (`manifest.json`, `sidebar.html`, `sidebar.css`, `sidebar.js`, and vector icon placeholders).
+* **Step #3:** Provide precise, step-by-step instructions for loading, testing, and debugging the extension locally in both Firefox and LibreWolf via `about:debugging` (Temporary Extension loading) on Linux and Windows.
+* **Step #4:** Outline the modular scaling strategy to upgrade the "Hello World" frame into the full dynamic "FeedTubes" logic safely.
+
+---
