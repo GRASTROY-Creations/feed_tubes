@@ -1,15 +1,16 @@
 {
   "name": "feedtubes",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "packageManager": "bun@1.4.4",
   "scripts": {
     "lint": "bun run lint:webext && bun run lint:js && bun run format:check",
     "lint:webext": "web-ext lint",
-    "lint:js": "eslint src",
+    "lint:js": "eslint src tests",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "test": "bun test",
     "start": "web-ext run",
     "start:librewolf": "bun run scripts/run-librewolf.mjs",
     "build": "web-ext build"

@@ -12,10 +12,27 @@ export default [
     files: ["src/**/*.js"],
     languageOptions: {
       ecmaVersion: "latest",
-      sourceType: "script",
+      sourceType: "module",
       globals: {
         ...globals.browser,
         browser: "readonly",
+      },
+    },
+    plugins: {
+      "no-unsanitized": noUnsanitized,
+    },
+    rules: {
+      "no-unsanitized/method": "error",
+      "no-unsanitized/property": "error",
+    },
+  },
+  {
+    files: ["tests/**/*.js"],
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      globals: {
+        ...globals.node,
       },
     },
     plugins: {
