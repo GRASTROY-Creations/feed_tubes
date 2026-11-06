@@ -5,23 +5,31 @@
   "type": "module",
   "packageManager": "bun@1.4.4",
   "scripts": {
-    "lint": "bun run lint:webext && bun run lint:js && bun run format:check",
-    "lint:webext": "web-ext lint",
-    "lint:js": "eslint src tests",
+    "typecheck": "tsc -p tsconfig.json",
+    "build:ext": "bun run scripts/build.ts",
+    "lint": "bun run typecheck && bun run lint:ts && bun run format:check && bun run lint:webext",
+    "lint:webext": "bun run build:ext && web-ext lint",
+    "lint:ts": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "bun test",
-    "start": "web-ext run",
-    "start:librewolf": "bun run scripts/run-librewolf.mjs",
-    "build": "web-ext build"
+    "dev": "bun run scripts/dev.ts",
+    "start": "bun run dev",
+    "start:librewolf": "bun run scripts/run-librewolf.ts",
+    "build": "bun run build:ext && web-ext build"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/bun": "^1.4.4",
+    "@types/firefox-webext-browser": "^143.0.1",
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-no-unsanitized": "^4.1.5",
     "globals": "^17.14.0",
+    "jiti": "^2.7.0",
     "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
     "web-ext": "^10.8.0"
   }
 }

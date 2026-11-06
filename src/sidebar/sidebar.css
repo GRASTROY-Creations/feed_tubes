@@ -81,42 +81,23 @@ select {
   padding: var(--ytf-space);
 }
 
-.app__header {
+/* Tabs on the left, the Refresh button at the right end of the same line. */
+.tab-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding-bottom: 10px;
   border-bottom: 1px solid var(--ytf-border);
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.brand__logo {
-  flex: none;
-}
-
-.brand__title {
-  font-size: 1rem;
-  font-weight: 650;
-  line-height: 1.2;
-}
-
-.brand__subtitle {
-  color: var(--ytf-muted);
-  font-size: 0.78rem;
-  line-height: 1.3;
 }
 
 .tabs {
   display: flex;
   gap: 4px;
-  border-bottom: 1px solid var(--ytf-border);
+  align-self: stretch;
+}
+
+.tab-bar > .button {
+  flex: none;
 }
 
 .tab {
@@ -329,11 +310,14 @@ select {
   padding: 8px 8px 8px 0;
 }
 
-.video-card__meta {
+/* Pushed to the bottom of the card: date on the left, source tag on the right. */
+.video-card__footer {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  justify-content: space-between;
   gap: 6px;
+  margin-top: auto;
+  padding-top: 4px;
 }
 
 .badge {
@@ -352,9 +336,19 @@ select {
   white-space: nowrap;
 }
 
+.badge--small {
+  flex-shrink: 0;
+  padding: 0 5px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
 .video-card__date {
   color: var(--ytf-muted);
   font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .video-card__title {

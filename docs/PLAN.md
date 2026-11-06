@@ -31,15 +31,15 @@ This plan covers the scaffold only. Actual YouTube feed integration is documente
 
 ## 2. Requirements Traceability
 
-| Requirement                       | Implementation                                                                                             |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Firefox / LibreWolf 159+          | MV3 manifest with `strict_min_version: "159.0"`                                                            |
+| Requirement                   | Implementation                                                                                             |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Firefox / LibreWolf 159+      | MV3 manifest with `strict_min_version: "159.0"`                                                            |
 | Sidebar entry named FeedTubes | `sidebar_action` with `default_title` and `default_panel`                                                  |
-| Hello World content               | `src/sidebar/sidebar.html` card with “Hello World”                                                         |
-| Linux and Windows                 | Relative URL paths, no absolute paths, no symlinks, cross-platform Bun scripts                             |
-| Mozilla best practices            | MV3, least privilege, no inline JS, default CSP, `data_collection_permissions: none`                       |
-| Markdown docs in `/docs`          | `docs/PLAN.md`, `README.md`, `INSTALL.md`, `ARCHITECTURE.md`, `DEVELOPMENT.md`, `TESTING.md`, `ROADMAP.md` |
-| Bun toolchain                     | `bun install`, `bun add -d`, `bun run`, `bun x`, `bun.lock`                                                |
+| Hello World content           | `src/sidebar/sidebar.html` card with “Hello World”                                                         |
+| Linux and Windows             | Relative URL paths, no absolute paths, no symlinks, cross-platform Bun scripts                             |
+| Mozilla best practices        | MV3, least privilege, no inline JS, default CSP, `data_collection_permissions: none`                       |
+| Markdown docs in `/docs`      | `docs/PLAN.md`, `README.md`, `INSTALL.md`, `ARCHITECTURE.md`, `DEVELOPMENT.md`, `TESTING.md`, `ROADMAP.md` |
+| Bun toolchain                 | `bun install`, `bun add -d`, `bun run`, `bun x`, `bun.lock`                                                |
 
 ---
 

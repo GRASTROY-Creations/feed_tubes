@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "build",
+    "types": ["firefox-webext-browser"],
+    "sourceMap": false,
+    "removeComments": false
+  },
+  "include": ["src"]
+}

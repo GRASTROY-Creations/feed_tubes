@@ -4,7 +4,7 @@ import {
   exportSubscriptions,
   parseSubscriptionsFile,
 } from "../src/lib/import-export.js";
-import { normalizeSubscription } from "../src/lib/subscriptions.js";
+import { at, subscriptionOf } from "./fixtures.js";
 
 describe("format detection", () => {
   it("detects unified CSV", () => {
@@ -63,7 +63,7 @@ describe("parseSubscriptionsFile", () => {
 
     expect(result.format).toBe("youtube-csv");
     expect(result.subscriptions).toHaveLength(1);
-    expect(result.subscriptions[0].channelName).toBe("A, B");
+    expect(at(result.subscriptions, 0).channelName).toBe("A, B");
     expect(result.invalid).toHaveLength(0);
   });
 
@@ -82,8 +82,8 @@ describe("parseSubscriptionsFile", () => {
       })
     );
 
-    expect(result.subscriptions[0].enabled).toBe(false);
-    expect(result.subscriptions[0].channelName).toBe("Example");
+    expect(at(result.subscriptions, 0).enabled).toBe(false);
+    expect(at(result.subscriptions, 0).channelName).toBe("Example");
   });
 
   it("parses NewPipe JSON and skips non-YouTube services", () => {
@@ -115,7 +115,7 @@ describe("parseSubscriptionsFile", () => {
 
     expect(result.format).toBe("freetube-db");
     expect(result.subscriptions).toHaveLength(1);
-    expect(result.subscriptions[0].channelId).toBe("UC_x5XG1OV2P6uZZ5FSM9Ttw");
+    expect(at(result.subscriptions, 0).channelId).toBe("UC_x5XG1OV2P6uZZ5FSM9Ttw");
   });
 
   it("rejects invalid JSON and unknown formats", () => {
@@ -130,16 +130,16 @@ describe("parseSubscriptionsFile", () => {
 
 describe("exportSubscriptions", () => {
   const subscriptions = [
-    normalizeSubscription({
+    subscriptionOf({
       platform: "youtube",
       channelId: "UC_x5XG1OV2P6uZZ5FSM9Ttw",
       channelName: "A, B",
-    }).subscription,
-    normalizeSubscription({
+    }),
+    subscriptionOf({
       platform: "generic",
       feedUrl: "https://example.com/feed.xml",
       channelName: "Feed",
-    }).subscription,
+    }),
   ];
 
   it("round-trips the unified CSV", () => {
@@ -148,7 +148,7 @@ describe("exportSubscriptions", () => {
 
     expect(parsed.format).toBe("unified-csv");
     expect(parsed.subscriptions).toHaveLength(2);
-    expect(parsed.subscriptions[0].channelName).toBe("A, B");
+    expect(at(parsed.subscriptions, 0).channelName).toBe("A, B");
   });
 
   it("round-trips the unified JSON", () => {
@@ -157,7 +157,7 @@ describe("exportSubscriptions", () => {
 
     expect(parsed.format).toBe("unified-json");
     expect(parsed.subscriptions).toHaveLength(2);
-    expect(parsed.subscriptions[1].feedUrl).toBe("https://example.com/feed.xml");
+    expect(at(parsed.subscriptions, 1).feedUrl).toBe("https://example.com/feed.xml");
   });
 
   it("filters non-YouTube subscriptions from YouTube exports", () => {
@@ -165,9 +165,11 @@ describe("exportSubscriptions", () => {
     const parsed = parseSubscriptionsFile(csv.text);
 
     expect(parsed.subscriptions).toHaveLength(1);
-    expect(parsed.subscriptions[0].platform).toBe("youtube");
+    expect(at(parsed.subscriptions, 0).platform).toBe("youtube");
 
-    const newpipe = JSON.parse(exportSubscriptions("newpipe-json", subscriptions).text);
+    const newpipe = JSON.parse(exportSubscriptions("newpipe-json", subscriptions).text) as {
+      subscriptions: unknown[];
+    };
     expect(newpipe.subscriptions).toHaveLength(1);
 
     const freetube = parseSubscriptionsFile(
@@ -181,5 +183,31 @@ describe("exportSubscriptions", () => {
     const output = exportSubscriptions("opml", subscriptions);
     expect(output.text).toContain("<opml");
     expect(output.text).toContain("https://www.youtube.com/feeds/videos.xml?channel_id=");
+  });
+
+  it("uses each platform's own feed URL in OPML exports", () => {
+    const output = exportSubscriptions(
+      "opml",
+      [
+        subscriptionOf({ platform: "odysee", channelId: "veritasium:f" }),
+        subscriptionOf({ platform: "dailymotion", channelId: "arte" }),
+      ],
+      "all"
+    );
+
+    expect(output.text).toContain('xmlUrl="https://odysee.com/$/rss/@veritasium:f"');
+    expect(output.text).toContain('xmlUrl="https://www.dailymotion.com/rss/user/arte"');
+  });
+
+  it("dates the filename from the given clock", () => {
+    const output = exportSubscriptions(
+      "unified-json",
+      subscriptions,
+      "all",
+      new Date("2026-01-02T03:04:05Z")
+    );
+
+    expect(output.filename).toBe("feedtubes-subscriptions-2026-01-02.json");
+    expect(output.text).toContain('"exportedAt": "2026-01-02T03:04:05.000Z"');
   });
 });

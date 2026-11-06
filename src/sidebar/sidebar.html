@@ -9,43 +9,35 @@
   </head>
   <body>
     <main class="app">
-      <header class="app__header">
-        <div class="brand">
-          <img class="brand__logo" src="../icons/icon.svg" alt="" width="28" height="28" />
-          <div>
-            <h1 class="brand__title">FeedTubes</h1>
-            <p class="brand__subtitle">Your subscriptions, one feed</p>
-          </div>
-        </div>
+      <div class="tab-bar">
+        <nav class="tabs" role="tablist" aria-label="FeedTubes views">
+          <button
+            id="tab-feed"
+            class="tab"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="panel-feed"
+            tabindex="0"
+          >
+            Feed
+          </button>
+          <button
+            id="tab-settings"
+            class="tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-settings"
+            tabindex="-1"
+          >
+            Settings
+          </button>
+        </nav>
         <button id="refresh-button" class="button button--primary button--compact" type="button">
           Refresh
         </button>
-      </header>
-
-      <nav class="tabs" role="tablist" aria-label="FeedTubes views">
-        <button
-          id="tab-feed"
-          class="tab"
-          type="button"
-          role="tab"
-          aria-selected="true"
-          aria-controls="panel-feed"
-          tabindex="0"
-        >
-          Feed
-        </button>
-        <button
-          id="tab-settings"
-          class="tab"
-          type="button"
-          role="tab"
-          aria-selected="false"
-          aria-controls="panel-settings"
-          tabindex="-1"
-        >
-          Settings
-        </button>
-      </nav>
+      </div>
 
       <section id="panel-feed" class="panel" role="tabpanel" aria-labelledby="tab-feed">
         <div class="feed-toolbar">
@@ -80,7 +72,7 @@
           <button id="feed-empty-action" class="button" type="button">Open settings</button>
         </div>
 
-        <button id="load-more" class="button button--wide" type="button" hidden>Show more</button>
+        <button id="load-more" class="button button--wide" type="button" hidden>Load more</button>
         <p id="last-updated" class="hint"></p>
       </section>
 
@@ -227,8 +219,8 @@
         <section class="settings-section" aria-labelledby="import-export-title">
           <h2 id="import-export-title" class="settings-section__title">Import / Export</h2>
           <p class="hint">
-            Import FeedTubes CSV/JSON, YouTube Takeout/FreeTube CSV, FreeTube .db, NewPipe JSON,
-            or OPML. Exports are portable files you can keep or re-import.
+            Import FeedTubes CSV/JSON, YouTube Takeout/FreeTube CSV, FreeTube .db, NewPipe JSON, or
+            OPML. Exports are portable files you can keep or re-import.
           </p>
           <label class="field">
             <span>Subscription file</span>

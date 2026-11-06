@@ -2,104 +2,125 @@
 
 ## Overview
 
-FeedTubes is a Manifest V3 WebExtension whose primary surface is a sidebar panel registered with `sidebar_action`.
+FeedTubes is a Manifest V3 WebExtension for Firefox and LibreWolf. Its UI is a sidebar panel registered with `sidebar_action`; a background script refreshes feeds on a timer.
 
-The current scaffold is intentionally static:
+All code is TypeScript under `src/`. `tsc` compiles it one file per module into `build/`, next to copies of the static assets. `build/` is what the browser loads and what `web-ext` packages. No bundler is involved, so every shipped `.js` file maps 1:1 to a `.ts` source file.
 
-- No background script.
-- No content scripts.
-- No permissions or host permissions.
-- No network requests.
-- No storage.
-- No remote code.
+```text
+src/
+  manifest.json
+  background/background.ts      alarm + refresh orchestration, message handlers
+  lib/                          shared, DOM-light logic (also used by tests)
+    types.ts                    domain model (Subscription, FeedItem, Settings, …)
+    messages.ts                 typed sidebar ⇄ background message protocol
+    storage.ts                  browser.storage.local access + state normalization
+    subscriptions.ts            normalization, keys, dedupe/merge
+    import-export.ts            file format detection, parsers, exporters
+    refresh.ts                  concurrent refresh of all enabled subscriptions
+    fetch.ts                    fetch with timeout, retries, credentials omitted
+    permissions.ts, alarms.ts   thin wrappers over browser APIs
+    url.ts, time.ts, csv.ts, xml.ts, text.ts, guards.ts, errors.ts, dom.ts
+    platforms/
+      registry.ts               one PlatformDefinition per platform
+      youtube.ts, peertube.ts, rutube.ts, odysee.ts, dailymotion.ts, generic-rss.ts
+  sidebar/
+    sidebar.html, sidebar.css
+    sidebar.ts                  App controller (implements AppContext)
+    app-context.ts              what views may read and do
+    components/                 tabs, toast, video card
+    views/feed-view.ts
+    views/settings-view.ts      composes views/settings/*-section.ts
+```
 
-This keeps the extension easy to review and gives future feed functionality a clean starting point.
+## Platforms
 
-## Manifest V3
+`lib/platforms/registry.ts` is the single source of truth for platforms. Each `PlatformDefinition` carries:
 
-`src/manifest.json` declares:
+- label and `kind` (`native`, `bridge`, `generic`)
+- `adapter` (`PlatformAdapter`: `fetchItems`, optional `feedUrlFor`)
+- default instance and fixed host permission
+- whether an instance or a feed URL is required
+- the instance kind offered in the form, and the form placeholder
 
-- `manifest_version: 3`.
-- `sidebar_action` with `default_title`, `default_panel`, `default_icon`, and `open_at_install`.
-- SVG icons for 16, 32, 48, 96, and 128 pixel slots.
-- `browser_specific_settings.gecko` with:
-  - `id: "feedtubes@example.com"` (placeholder).
-  - `strict_min_version: "159.0"`.
-  - `data_collection_permissions.required: ["none"]`.
+The record is checked with `satisfies Record<PlatformId, PlatformDefinition>`, so adding a `PlatformId` without a definition is a compile error.
 
-`sidebar_action` does **not** require a permission entry. Do not add `sidebarAction` to `permissions`.
+To add a platform:
 
-`browser_style` is not supported in MV3 and is omitted.
+1. Add its id to `PlatformId` in `types.ts`.
+2. Write an adapter. For RSS/Atom sources, `createFeedAdapter(feedUrlFor)` in `generic-rss.ts` is enough.
+3. Register it in `PLATFORMS`.
+4. Add a normalizer in `subscriptions.ts` if its channel URLs need parsing.
 
-## Sidebar flow
+### YouTube
 
-1. The browser reads `sidebar_action` from the manifest.
-2. The sidebar entry appears under **View → Sidebar → FeedTubes**.
-3. The browser loads `src/sidebar/sidebar.html` in the extension origin.
-4. `sidebar.css` applies theme-aware styling.
-5. `sidebar.js` runs after parsing, sets a small status message, and logs one debug message.
+YouTube's feed only accepts `UC…` channel ids. Handles, bare names (stored as `@name`) and `/@name`, `/c/…` or `/user/…` URLs are resolved when a subscription is saved, and on the fly for older subscriptions saved unresolved.
 
-The panel can later call WebExtension APIs directly. If it needs privileged background work, add a background script and document the new permission model.
+`youtube.ts` uses two sources, in order:
+
+1. **Channel lookup:** YouTube's internal `navigation/resolve_url` API (`youtube-innertube.ts`). The fallback is the channel page with `?ucbcb=1`. Without that parameter, cookieless requests from the EU are redirected to `consent.youtube.com`, which the extension cannot read, and Firefox reports a `NetworkError`.
+2. **Videos:** the public RSS feed (`/feeds/videos.xml`), which has exact dates. When the feed fails, the extension reads the channel's Videos tab through the internal `browse` API instead.
+   - The fallback was added because, as of November 2026, the feed returned HTTP 404/500 for every channel.
+   - Dates from the fallback are approximate, because YouTube only gives "3 days ago".
+   - The internal API is undocumented, so all of its fields are read defensively.
+   - An empty Videos tab is reported as an error, since that more likely means a changed response format than a channel with no uploads.
+
+## Message protocol
+
+Defined in `lib/messages.ts`:
+
+| Direction            | Type               | Response                                       |
+| -------------------- | ------------------ | ---------------------------------------------- |
+| sidebar → background | `refresh-request`  | `Result<{ total, failures, completedAt }>`     |
+| sidebar → background | `settings-changed` | `Result` (the alarm is rescheduled)            |
+| sidebar → background | `alarm-info`       | `Result<{ alarm }>`                            |
+| background → sidebar | `feed-updated`     | event: `{ reason, total?, failures?, error? }` |
+
+The background script answers through a typed handler map (`{ [T in RequestType]: () => Promise<RequestResponses[T]> }`). Only one refresh runs at a time; concurrent requests share the promise of the one in flight.
+
+Each subscription is fetched at most once per 5 minutes (`REFRESH_COOLDOWN_MS` in `refresh.ts`), whether the refresh comes from the Refresh button, opening the sidebar, or the alarm.
+
+- Skipped subscriptions keep their cached entry. The response reports `throttled` and `nextRefreshAt`, and the manual-refresh toast shows the wait time.
+- Sources that failed only for missing host access are never held back, so "Grant access" loads them right away.
+
+## Sidebar
+
+`sidebar.ts` loads state, creates the views and wires the tabs. Views get an `AppContext`, not the storage layer, so all writes go through one place that also re-renders every view.
+
+The settings panel is split into independent sections (instances, subscriptions, refresh, import/export, data), each with `render()`/`reset()`.
+
+Required DOM elements are looked up with `getElement(id, HTMLXElement)`, which throws on a markup/code mismatch instead of failing later on `null`.
+
+Adding a YouTube `@handle` resolves it to a `UC…` channel id when the subscription is saved, because YouTube's feed endpoint only accepts channel ids.
+
+## Permissions
+
+- `storage` and `alarms` are required.
+- Hosts are `optional_host_permissions`, requested per subscription origin:
+  - when the user grants access from the feed
+  - when testing an instance
+  - when resolving a YouTube handle
+
+  Requests are made before any `await` in the click/submit handler, so they still count as user actions.
+
+- `fetch` always uses `credentials: "omit"` and `cache: "no-store"`.
 
 ## Security model
 
-- Default MV3 content security policy applies.
-- All JavaScript is external (`sidebar.js`).
-- No inline `<script>`, inline event handlers, `eval`, `new Function`, or remote scripts.
-- No unsanitized HTML sinks.
-- ESLint uses `eslint-plugin-no-unsanitized` to reject unsafe DOM APIs.
-- No permissions or host permissions are requested.
-- The extension declares no data collection.
+- Default MV3 content security policy; no inline scripts, `eval`, or remote code.
+- All feed and import data is treated as untrusted:
+  - JSON is narrowed with `lib/guards.ts`.
+  - URLs must pass `parseHttpUrl` (http/https only, no embedded credentials).
+  - Titles are truncated.
+- The DOM is built with `createEl`/`textContent` only. ESLint's `no-unsanitized` rules reject HTML sinks.
+- CSV exports neutralize spreadsheet formulas.
+- No data leaves the browser except requests to the platforms and bridges the user configures, so `data_collection_permissions` declares `none`.
 
-When feed integration begins:
+## Theming and accessibility
 
-- Prefer `textContent` and DOM construction over HTML strings.
-- Treat all feed data as untrusted.
-- Add only the narrowest permissions needed.
-- Re-evaluate `data_collection_permissions` if any data leaves the browser.
-
-## Theming
-
-The sidebar uses its own `--ytf-*` custom properties:
-
-- Light values are defined on `:root`.
-- Dark values override them inside `@media (prefers-color-scheme: dark)`.
-- `color-scheme: light dark` lets form controls and scrollbars follow the browser theme.
-
-The extension does not depend on Firefox-internal `--in-content-*` variables, which are not guaranteed inside extension pages.
-
-## Accessibility
-
-- The document declares `lang="en"`.
-- The layout uses semantic `<main>`, `<header>`, and `<section>` elements.
-- The decorative icon uses `alt=""`.
-- There is one `<h1>` and a subordinate `<h2>`.
-- The status paragraph uses `role="status"` and `aria-live="polite"`.
-- `:focus-visible` styling is defined for future interactive controls.
-- Text colors are chosen to remain readable in both light and dark schemes.
+- `--ytf-*` custom properties are defined for light and dark (`prefers-color-scheme`); `color-scheme: light dark` covers form controls.
+- The tabs follow the WAI-ARIA tablist pattern (roving tabindex; arrow, Home and End keys).
+- Status regions use `role="status"` / `aria-live`.
 
 ## Packaging boundary
 
-`web-ext` is configured with `sourceDir: "src"`, so only the extension source is packaged. Documentation, configuration files, `node_modules`, and `dist` are excluded automatically.
-
-The build artifact goes to `dist/`.
-
-## Cross-platform rules
-
-- Manifest and HTML paths use `/`, which is valid on Windows as well.
-- No absolute filesystem paths inside `src/`.
-- No symlinks in `src/`.
-- Bun scripts are cross-platform.
-- Browser binary paths are passed at runtime, not hardcoded into extension code.
-
-## Data collection
-
-The scaffold collects nothing and sends nothing. The manifest therefore declares:
-
-```json
-"data_collection_permissions": {
-  "required": ["none"]
-}
-```
-
-This declaration must be updated if future versions transmit data off the device.
+`web-ext-config.mjs` sets `sourceDir: "build"` and `artifactsDir: "dist"`, so the zip contains only compiled JavaScript and static assets: no `.ts`, tests, docs or tooling. AMO reviewers need the TypeScript sources submitted alongside, since the shipped code is generated.

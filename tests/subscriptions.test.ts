@@ -5,15 +5,15 @@ import {
   normalizeSubscription,
   subscriptionKey,
 } from "../src/lib/subscriptions.js";
+import { at, subscriptionOf } from "./fixtures.js";
 
 describe("normalizeSubscription", () => {
   it("normalizes YouTube channel URLs", () => {
-    const { subscription, errors } = normalizeSubscription({
+    const subscription = subscriptionOf({
       platform: "youtube",
       channelUrl: "https://www.youtube.com/channel/UC_x5XG1OV2P6uZZ5FSM9Ttw/",
     });
 
-    expect(errors).toEqual([]);
     expect(subscription.channelId).toBe("UC_x5XG1OV2P6uZZ5FSM9Ttw");
     expect(subscription.channelUrl).toBe(
       "https://www.youtube.com/channel/UC_x5XG1OV2P6uZZ5FSM9Ttw"
@@ -22,50 +22,55 @@ describe("normalizeSubscription", () => {
   });
 
   it("normalizes YouTube handles", () => {
-    const { subscription, errors } = normalizeSubscription({
-      platform: "youtube",
-      channelId: "@example",
-    });
+    const subscription = subscriptionOf({ platform: "youtube", channelId: "@example" });
 
-    expect(errors).toEqual([]);
     expect(subscription.channelId).toBe("@example");
     expect(subscription.channelUrl).toBe("https://www.youtube.com/@example");
   });
 
   it("derives a PeerTube instance from a channel URL", () => {
-    const { subscription, errors } = normalizeSubscription({
+    const subscription = subscriptionOf({
       platform: "peertube",
       channelUrl: "https://video.ploud.fr/c/science/videos",
     });
 
-    expect(errors).toEqual([]);
     expect(subscription.instanceUrl).toBe("https://video.ploud.fr");
     expect(subscription.channelId).toBe("science");
     expect(subscription.channelUrl).toBe("https://video.ploud.fr/c/science/videos");
   });
 
+  it("requires a PeerTube instance", () => {
+    const result = normalizeSubscription({ platform: "peertube", channelId: "science" });
+    expect(result.errors).toContain("A PeerTube instance URL is required.");
+  });
+
   it("requires a feed URL for bridge platforms", () => {
-    const missing = normalizeSubscription({
-      platform: "bilibili",
-      channelId: "2267573",
-    });
+    const missing = normalizeSubscription({ platform: "bilibili", channelId: "2267573" });
     expect(missing.subscription).toBeNull();
     expect(missing.errors).toContain("This platform needs an RSS/Atom or bridge feed URL.");
 
-    const valid = normalizeSubscription({
+    const valid = subscriptionOf({
       platform: "bilibili",
       channelId: "2267573",
       feedUrl: "https://rsshub.app/bilibili/user/video/2267573",
     });
-    expect(valid.errors).toEqual([]);
-    expect(valid.subscription.instanceUrl).toBe("https://rsshub.app");
+    expect(valid.instanceUrl).toBe("https://rsshub.app");
+  });
+
+  it("parses textual and boolean enabled flags", () => {
+    expect(subscriptionOf({ platform: "youtube", channelId: "@a", enabled: "off" }).enabled).toBe(
+      false
+    );
+    expect(subscriptionOf({ platform: "youtube", channelId: "@a", enabled: false }).enabled).toBe(
+      false
+    );
+    expect(subscriptionOf({ platform: "youtube", channelId: "@a", enabled: "" }).enabled).toBe(
+      true
+    );
   });
 
   it("rejects non-http schemes and credentialed URLs", () => {
-    const script = normalizeSubscription({
-      platform: "generic",
-      feedUrl: "javascript:alert(1)",
-    });
+    const script = normalizeSubscription({ platform: "generic", feedUrl: "javascript:alert(1)" });
     expect(script.subscription).toBeNull();
     expect(script.errors.length).toBeGreaterThan(0);
 
@@ -75,11 +80,17 @@ describe("normalizeSubscription", () => {
     });
     expect(credentials.subscription).toBeNull();
   });
+
+  it("rejects unknown platforms", () => {
+    expect(normalizeSubscription({ platform: "myspace" }).errors).toEqual([
+      "Unknown or missing platform.",
+    ]);
+  });
 });
 
 describe("subscriptionKey", () => {
   it("uses platform, host, channel, and feed", () => {
-    const { subscription } = normalizeSubscription({
+    const subscription = subscriptionOf({
       platform: "youtube",
       channelId: "UC_x5XG1OV2P6uZZ5FSM9Ttw",
     });
@@ -89,23 +100,23 @@ describe("subscriptionKey", () => {
 });
 
 describe("subscription merging", () => {
-  const first = normalizeSubscription({
+  const first = subscriptionOf({
     platform: "youtube",
     channelId: "UC_x5XG1OV2P6uZZ5FSM9Ttw",
     channelName: "First",
     enabled: false,
-  }).subscription;
-  const duplicate = normalizeSubscription({
+  });
+  const duplicate = subscriptionOf({
     platform: "youtube",
     channelId: "UC_x5XG1OV2P6uZZ5FSM9Ttw",
     channelName: "Updated",
     enabled: true,
-  }).subscription;
-  const second = normalizeSubscription({
+  });
+  const second = subscriptionOf({
     platform: "youtube",
     channelId: "UC1JTQBa5QxZCpXrFSkMxmPw",
     channelName: "Second",
-  }).subscription;
+  });
 
   it("deduplicates by key", () => {
     expect(dedupeSubscriptions([first, duplicate])).toHaveLength(1);
@@ -115,17 +126,17 @@ describe("subscription merging", () => {
     const merged = mergeSubscriptions([first], [duplicate, second], "merge");
 
     expect(merged).toHaveLength(2);
-    expect(merged[0].channelName).toBe("Updated");
-    expect(merged[0].enabled).toBe(false);
+    expect(at(merged, 0).channelName).toBe("Updated");
+    expect(at(merged, 0).enabled).toBe(false);
   });
 
   it("skips duplicates and replaces when requested", () => {
     const skipped = mergeSubscriptions([first], [duplicate, second], "skip");
     expect(skipped).toHaveLength(2);
-    expect(skipped[0].channelName).toBe("First");
+    expect(at(skipped, 0).channelName).toBe("First");
 
     const replaced = mergeSubscriptions([first], [second], "replace");
     expect(replaced).toHaveLength(1);
-    expect(replaced[0].channelName).toBe("Second");
+    expect(at(replaced, 0).channelName).toBe("Second");
   });
 });

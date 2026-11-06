@@ -6,27 +6,31 @@ Run from the repository root:
 
 ```bash
 bun run lint
+bun test
 bun run build
 ```
 
 Individual checks:
 
 ```bash
-bun run lint:webext
-bun run lint:js
+bun run typecheck
+bun run lint:ts
 bun run format:check
+bun run lint:webext
 ```
 
 Pass conditions:
 
-| Check           | Command                                                                     | Pass condition                               |
-| --------------- | --------------------------------------------------------------------------- | -------------------------------------------- |
-| Extension lint  | `bun run lint:webext`                                                       | 0 errors                                     |
-| JavaScript lint | `bun run lint:js`                                                           | 0 errors                                     |
-| Formatting      | `bun run format:check`                                                      | All files formatted                          |
-| Build           | `bun run build`                                                             | Zip created in `dist/`                       |
-| Zip layout      | `unzip -l dist/*.zip`                                                       | `manifest.json` at root; only `src/` content |
-| Manifest JSON   | editor or `bun -e 'JSON.parse(await Bun.file("src/manifest.json").text())'` | Valid JSON                                   |
+| Check          | Command                                                                     | Pass condition                                                  |
+| -------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Type check     | `bun run typecheck`                                                         | 0 errors (strict)                                               |
+| ESLint         | `bun run lint:ts`                                                           | 0 errors (type-checked rules)                                   |
+| Formatting     | `bun run format:check`                                                      | All files formatted                                             |
+| Extension lint | `bun run lint:webext`                                                       | 0 errors on the compiled `build/`                               |
+| Unit tests     | `bun test`                                                                  | All pass                                                        |
+| Build          | `bun run build`                                                             | Zip created in `dist/`                                          |
+| Zip layout     | `unzip -l dist/*.zip`                                                       | `manifest.json` at root; compiled `.js` only, no `.ts` or tests |
+| Manifest JSON  | editor or `bun -e 'JSON.parse(await Bun.file("src/manifest.json").text())'` | Valid JSON                                                      |
 
 ## Manual test matrix
 
@@ -46,12 +50,17 @@ Windows rows are documented even when a Windows environment is not available.
 
 ## Loading for manual tests
 
-1. Open `about:debugging#/runtime/this-firefox`.
-2. Click **Load Temporary Add-on…**.
-3. Select `src/manifest.json`.
-4. Open **View → Sidebar → FeedTubes**.
+1. Run `bun run build:ext` to compile into `build/`.
+2. Open `about:debugging#/runtime/this-firefox`.
+3. Click **Load Temporary Add-on…**.
+4. Select `build/manifest.json` (not `src/`, which holds TypeScript).
+5. Open **View → Sidebar → FeedTubes**.
 
-Or run:
+Or run one of these, which build, watch, and reload automatically:
+
+```bash
+bun run dev
+```
 
 ```bash
 bun run start:librewolf
@@ -113,7 +122,7 @@ Record results here after each validation run:
 | Date       | Browser                               | OS      | Result      | Notes                                                                                                                                 |
 | ---------- | ------------------------------------- | ------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-11-05 | Automated (`bun run lint`)            | Linux   | Pass        | `web-ext lint`: 0 errors, 0 notices, 0 warnings; ESLint passed; Prettier reported all matched files formatted.                        |
-| 2026-11-05 | Automated (`bun run build`)           | Linux   | Pass        | `dist/feedtubes-0.1.0.zip` created; `manifest.json` at the zip root; only `src/` content packaged.                                |
+| 2026-11-05 | Automated (`bun run build`)           | Linux   | Pass        | `dist/feedtubes-0.1.0.zip` created; `manifest.json` at the zip root; only `src/` content packaged.                                    |
 | 2026-11-05 | Firefox 159.0.1                       | Linux   | Pass (load) | Temporary add-on installed via `bun x web-ext run --firefox=/usr/sbin/firefox`; sidebar visual check pending.                         |
 | 2026-11-05 | LibreWolf 159.0-1                     | Linux   | Pass (load) | Active MV3 add-on confirmed via `--pre-install`; remote debugger port was unavailable; sidebar visual check pending.                  |
 | 2026-11-05 | LibreWolf 159.0-1 (`start:librewolf`) | Linux   | Pass (load) | Project-local override enabled the DevTools server; temporary add-on installed; sidebar visual check pending.                         |
