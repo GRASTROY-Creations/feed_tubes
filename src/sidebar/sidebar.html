@@ -41,14 +41,14 @@
 
       <section id="panel-feed" class="panel" role="tabpanel" aria-labelledby="tab-feed">
         <div class="feed-toolbar">
-          <label class="field field--inline">
-            <span>Platform</span>
+          <label class="field field--compact">
+            <span class="visually-hidden">Platform</span>
             <select id="platform-filter">
               <option value="all">All platforms</option>
             </select>
           </label>
-          <label class="field field--inline">
-            <span>Channel</span>
+          <label class="field field--compact">
+            <span class="visually-hidden">Channel</span>
             <select id="channel-filter">
               <option value="all">All channels</option>
             </select>
@@ -72,8 +72,10 @@
           <button id="feed-empty-action" class="button" type="button">Open settings</button>
         </div>
 
-        <button id="load-more" class="button button--wide" type="button" hidden>Load more</button>
-        <p id="last-updated" class="hint"></p>
+        <button id="load-more" class="button button--wide button--compact" type="button" hidden>
+          Load more
+        </button>
+        <p id="last-updated" class="hint hint--small"></p>
       </section>
 
       <section
@@ -83,192 +85,203 @@
         aria-labelledby="tab-settings"
         hidden
       >
-        <section class="settings-section" aria-labelledby="instances-title">
-          <h2 id="instances-title" class="settings-section__title">Instances</h2>
-          <p class="hint">
-            PeerTube instances and bridge bases. Each subscription stores its own instance.
-          </p>
-          <div id="instance-list" class="list"></div>
-
-          <form id="instance-form" class="form">
+        <details class="settings-section">
+          <summary class="settings-section__title">General</summary>
+          <div class="settings-section__body">
+            <h3 class="settings-section__subtitle">Automatic refresh</h3>
             <label class="field">
-              <span>Kind</span>
-              <select id="instance-kind">
-                <option value="peertube">PeerTube</option>
-                <option value="rsshub">RSSHub</option>
-                <option value="vk">VK bridge</option>
-                <option value="bilibili">Bilibili bridge</option>
-                <option value="rumble">Rumble bridge</option>
-                <option value="generic">Generic RSS</option>
+              <span>Refresh interval</span>
+              <select id="refresh-interval">
+                <option value="60">Every 1 hour</option>
+                <option value="180">Every 3 hours</option>
+                <option value="360">Every 6 hours</option>
               </select>
-            </label>
-            <label class="field">
-              <span>Label</span>
-              <input id="instance-label" type="text" maxlength="120" placeholder="My instance" />
-            </label>
-            <label class="field">
-              <span>Base URL</span>
-              <input
-                id="instance-url"
-                type="url"
-                maxlength="2048"
-                placeholder="https://video.example"
-                required
-              />
-            </label>
-            <div class="form-actions">
-              <button class="button button--primary" type="submit">Add instance</button>
-              <button id="instance-test" class="button" type="button">Test connection</button>
-              <button id="instance-cancel" class="button button--quiet" type="button" hidden>
-                Cancel
-              </button>
-            </div>
-          </form>
-          <p id="instance-result" class="hint" role="status"></p>
-        </section>
-
-        <section class="settings-section" aria-labelledby="subscriptions-title">
-          <h2 id="subscriptions-title" class="settings-section__title">Subscriptions</h2>
-          <div class="toolbar">
-            <label class="field field--inline">
-              <span>Search</span>
-              <input id="subscription-search" type="search" placeholder="Channel name" />
-            </label>
-            <label class="field field--inline">
-              <span>Platform</span>
-              <select id="subscription-filter">
-                <option value="all">All platforms</option>
-              </select>
-            </label>
-          </div>
-          <div class="toolbar">
-            <button id="enable-all" class="button button--compact" type="button">Enable all</button>
-            <button id="disable-all" class="button button--compact" type="button">
-              Disable all
-            </button>
-            <button id="delete-disabled" class="button button--compact" type="button">
-              Delete disabled
-            </button>
-          </div>
-          <div id="subscription-list" class="list"></div>
-
-          <form id="subscription-form" class="form">
-            <label class="field">
-              <span>Platform</span>
-              <select id="subscription-platform"></select>
-            </label>
-            <label id="subscription-instance-row" class="field" hidden>
-              <span>Instance</span>
-              <select id="subscription-instance"></select>
-            </label>
-            <label class="field">
-              <span>Channel ID, URL, or handle</span>
-              <input
-                id="subscription-channel"
-                type="text"
-                maxlength="2048"
-                placeholder="UC… / channel URL / @handle"
-              />
-            </label>
-            <label class="field">
-              <span>Display name (optional)</span>
-              <input id="subscription-name" type="text" maxlength="300" />
-            </label>
-            <label id="subscription-feed-row" class="field" hidden>
-              <span>Feed URL</span>
-              <input
-                id="subscription-feed-url"
-                type="url"
-                maxlength="2048"
-                placeholder="https://example.com/feed.xml"
-              />
             </label>
             <label class="checkbox">
-              <input id="subscription-enabled" type="checkbox" checked />
-              <span>Enabled</span>
+              <input id="refresh-enabled" type="checkbox" />
+              <span>Refresh feeds in the background</span>
             </label>
+            <p class="hint">
+              The feed also refreshes when you open the sidebar and the cache is stale.
+            </p>
+
+            <hr class="divider" />
+
+            <h3 class="settings-section__subtitle">Data &amp; About</h3>
+            <p id="storage-usage" class="hint"></p>
             <div class="form-actions">
-              <button class="button button--primary" type="submit">Add subscription</button>
-              <button id="subscription-cancel" class="button button--quiet" type="button" hidden>
-                Cancel
+              <button id="clear-cache" class="button" type="button">Clear cache</button>
+              <button id="reset-data" class="button button--danger" type="button">
+                Reset all data
               </button>
             </div>
-            <p id="subscription-error" class="banner banner--error" role="alert" hidden></p>
-          </form>
-        </section>
-
-        <section class="settings-section" aria-labelledby="refresh-title">
-          <h2 id="refresh-title" class="settings-section__title">Automatic refresh</h2>
-          <label class="field">
-            <span>Refresh interval</span>
-            <select id="refresh-interval">
-              <option value="60">Every 1 hour</option>
-              <option value="180">Every 3 hours</option>
-              <option value="360">Every 6 hours</option>
-            </select>
-          </label>
-          <label class="checkbox">
-            <input id="refresh-enabled" type="checkbox" />
-            <span>Refresh feeds in the background</span>
-          </label>
-          <p class="hint">
-            The feed also refreshes when you open the sidebar and the cache is stale.
-          </p>
-        </section>
-
-        <section class="settings-section" aria-labelledby="import-export-title">
-          <h2 id="import-export-title" class="settings-section__title">Import / Export</h2>
-          <p class="hint">
-            Import FeedTubes CSV/JSON, YouTube Takeout/FreeTube CSV, FreeTube .db, NewPipe JSON, or
-            OPML. Exports are portable files you can keep or re-import.
-          </p>
-          <label class="field">
-            <span>Subscription file</span>
-            <input id="import-file" type="file" accept=".csv,.json,.db,.opml,.xml" />
-          </label>
-          <label class="field">
-            <span>Merge mode</span>
-            <select id="import-mode">
-              <option value="merge">Merge — add new and update duplicates</option>
-              <option value="skip">Skip duplicates</option>
-              <option value="replace">Replace — remove existing subscriptions</option>
-            </select>
-          </label>
-          <button id="import-button" class="button button--primary" type="button">
-            Import subscriptions
-          </button>
-          <p id="import-report" class="hint" role="status"></p>
-
-          <hr class="divider" />
-
-          <label class="field">
-            <span>Export format</span>
-            <select id="export-format"></select>
-          </label>
-          <label class="field">
-            <span>Scope</span>
-            <select id="export-scope">
-              <option value="all">All subscriptions</option>
-              <option value="enabled">Enabled only</option>
-            </select>
-          </label>
-          <button id="export-button" class="button" type="button">Download file</button>
-        </section>
-
-        <section class="settings-section" aria-labelledby="data-title">
-          <h2 id="data-title" class="settings-section__title">Data &amp; About</h2>
-          <p id="storage-usage" class="hint"></p>
-          <div class="form-actions">
-            <button id="clear-cache" class="button" type="button">Clear cache</button>
-            <button id="reset-data" class="button button--danger" type="button">
-              Reset all data
-            </button>
+            <p class="hint">
+              Version <span id="version">0.2.0</span>. Feed requests go directly to the platforms
+              and bridge services you configure. FeedTubes does not collect data.
+            </p>
           </div>
-          <p class="hint">
-            Version <span id="version">0.2.0</span>. Feed requests go directly to the platforms and
-            bridge services you configure. FeedTubes does not collect data.
-          </p>
-        </section>
+        </details>
+
+        <details class="settings-section">
+          <summary class="settings-section__title">Subscriptions</summary>
+          <div class="settings-section__body">
+            <div class="toolbar">
+              <label class="field field--inline">
+                <span>Search</span>
+                <input id="subscription-search" type="search" placeholder="Channel name" />
+              </label>
+              <label class="field field--inline">
+                <span>Platform</span>
+                <select id="subscription-filter">
+                  <option value="all">All platforms</option>
+                </select>
+              </label>
+            </div>
+            <div class="toolbar">
+              <button id="enable-all" class="button button--compact" type="button">
+                Enable all
+              </button>
+              <button id="disable-all" class="button button--compact" type="button">
+                Disable all
+              </button>
+              <button id="delete-disabled" class="button button--compact" type="button">
+                Delete disabled
+              </button>
+            </div>
+            <div id="subscription-list" class="list"></div>
+
+            <form id="subscription-form" class="form">
+              <label class="field">
+                <span>Platform</span>
+                <select id="subscription-platform"></select>
+              </label>
+              <label id="subscription-instance-row" class="field" hidden>
+                <span>Instance</span>
+                <select id="subscription-instance"></select>
+              </label>
+              <label class="field">
+                <span>Channel ID, URL, or handle</span>
+                <input
+                  id="subscription-channel"
+                  type="text"
+                  maxlength="2048"
+                  placeholder="UC… / channel URL / @handle"
+                />
+              </label>
+              <label class="field">
+                <span>Display name (optional)</span>
+                <input id="subscription-name" type="text" maxlength="300" />
+              </label>
+              <label id="subscription-feed-row" class="field" hidden>
+                <span>Feed URL</span>
+                <input
+                  id="subscription-feed-url"
+                  type="url"
+                  maxlength="2048"
+                  placeholder="https://example.com/feed.xml"
+                />
+              </label>
+              <label class="checkbox">
+                <input id="subscription-enabled" type="checkbox" checked />
+                <span>Enabled</span>
+              </label>
+              <div class="form-actions">
+                <button class="button button--primary" type="submit">Add subscription</button>
+                <button id="subscription-cancel" class="button button--quiet" type="button" hidden>
+                  Cancel
+                </button>
+              </div>
+              <p id="subscription-error" class="banner banner--error" role="alert" hidden></p>
+            </form>
+          </div>
+        </details>
+
+        <details class="settings-section">
+          <summary class="settings-section__title">Instances</summary>
+          <div class="settings-section__body">
+            <p class="hint">
+              PeerTube instances and bridge bases. Each subscription stores its own instance.
+            </p>
+            <div id="instance-list" class="list"></div>
+
+            <form id="instance-form" class="form">
+              <label class="field">
+                <span>Kind</span>
+                <select id="instance-kind">
+                  <option value="peertube">PeerTube</option>
+                  <option value="rsshub">RSSHub</option>
+                  <option value="vk">VK bridge</option>
+                  <option value="bilibili">Bilibili bridge</option>
+                  <option value="rumble">Rumble bridge</option>
+                  <option value="generic">Generic RSS</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Label</span>
+                <input id="instance-label" type="text" maxlength="120" placeholder="My instance" />
+              </label>
+              <label class="field">
+                <span>Base URL</span>
+                <input
+                  id="instance-url"
+                  type="url"
+                  maxlength="2048"
+                  placeholder="https://video.example"
+                  required
+                />
+              </label>
+              <div class="form-actions">
+                <button class="button button--primary" type="submit">Add instance</button>
+                <button id="instance-test" class="button" type="button">Test connection</button>
+                <button id="instance-cancel" class="button button--quiet" type="button" hidden>
+                  Cancel
+                </button>
+              </div>
+            </form>
+            <p id="instance-result" class="hint" role="status"></p>
+          </div>
+        </details>
+
+        <details id="settings-transfer" class="settings-section">
+          <summary class="settings-section__title">Import / Export</summary>
+          <div class="settings-section__body">
+            <p class="hint">
+              Import FeedTubes CSV/JSON, YouTube Takeout/FreeTube CSV, FreeTube .db, NewPipe JSON,
+              or OPML. Exports are portable files you can keep or re-import.
+            </p>
+            <label class="field">
+              <span>Subscription file</span>
+              <input id="import-file" type="file" accept=".csv,.json,.db,.opml,.xml" />
+            </label>
+            <label class="field">
+              <span>Merge mode</span>
+              <select id="import-mode">
+                <option value="merge">Merge — add new and update duplicates</option>
+                <option value="skip">Skip duplicates</option>
+                <option value="replace">Replace — remove existing subscriptions</option>
+              </select>
+            </label>
+            <button id="import-button" class="button button--primary" type="button">
+              Import subscriptions
+            </button>
+            <p id="import-report" class="hint" role="status"></p>
+
+            <hr class="divider" />
+
+            <label class="field">
+              <span>Export format</span>
+              <select id="export-format"></select>
+            </label>
+            <label class="field">
+              <span>Scope</span>
+              <select id="export-scope">
+                <option value="all">All subscriptions</option>
+                <option value="enabled">Enabled only</option>
+              </select>
+            </label>
+            <button id="export-button" class="button" type="button">Download file</button>
+          </div>
+        </details>
       </section>
     </main>
 

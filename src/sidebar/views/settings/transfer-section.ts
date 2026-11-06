@@ -48,6 +48,7 @@ function importReport(parsed: ImportResult, storedCount: number): string {
 /** Import and export of subscription files. */
 export function initTransferSection(app: AppContext): SettingsSection {
   const elements = {
+    section: getElement("settings-transfer", HTMLDetailsElement),
     importFile: getElement("import-file", HTMLInputElement),
     importMode: getElement("import-mode", HTMLSelectElement),
     importButton: getElement("import-button", HTMLButtonElement),
@@ -127,6 +128,18 @@ export function initTransferSection(app: AppContext): SettingsSection {
   );
   elements.exportFormat.value = "unified-csv";
 
-  // Nothing here depends on stored state, so there is nothing to re-render.
-  return {};
+  // Without subscriptions, importing a file is the likely first step, so the section opens
+  // whenever the list becomes empty (first run, or after "Reset all data"). It only reacts to
+  // that change, so closing it while the list is still empty keeps it closed.
+  let hadSubscriptions = true;
+
+  return {
+    render() {
+      const hasSubscriptions = app.state.subscriptions.length > 0;
+      if (hadSubscriptions && !hasSubscriptions) {
+        elements.section.open = true;
+      }
+      hadSubscriptions = hasSubscriptions;
+    },
+  };
 }

@@ -81,7 +81,13 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
       ...(instanceKind === "peertube" ? [] : [createOption("", "No instance selected")]),
       ...options.map((instance) => createOption(instance.url, instanceLabel(instance))),
       ...(options.length === 0
-        ? [createOption("", `Add a ${INSTANCE_KIND_LABELS[instanceKind]} instance above`, true)]
+        ? [
+            createOption(
+              "",
+              `Add a ${INSTANCE_KIND_LABELS[instanceKind]} instance under Instances`,
+              true
+            ),
+          ]
         : [])
     );
 

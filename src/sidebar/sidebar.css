@@ -10,9 +10,11 @@
   --ytf-accent: #c5002e;
   --ytf-accent-text: #ffffff;
   --ytf-danger: #b00020;
-  --ytf-radius: 10px;
+  --ytf-radius: 6px;
   --ytf-radius-small: 6px;
-  --ytf-space: 12px;
+  /* Compact by design: the sidebar is narrow and vertical space is scarce. */
+  --ytf-space: 6px;
+  --ytf-space-tight: 4px;
   --ytf-shadow: 0 1px 2px rgb(0 0 0 / 6%);
 }
 
@@ -78,7 +80,7 @@ select {
   flex-direction: column;
   gap: var(--ytf-space);
   min-height: 100vh;
-  padding: var(--ytf-space);
+  padding: var(--ytf-space) 8px;
 }
 
 /* Tabs on the left, the Refresh button at the right end of the same line. */
@@ -86,22 +88,24 @@ select {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--ytf-space);
   border-bottom: 1px solid var(--ytf-border);
 }
 
 .tabs {
   display: flex;
-  gap: 4px;
+  gap: var(--ytf-space-tight);
   align-self: stretch;
 }
 
+/* No taller than the tabs, so it does not add height to the line. */
 .tab-bar > .button {
   flex: none;
+  padding: 3px 8px;
 }
 
 .tab {
-  padding: 8px 10px;
+  padding: var(--ytf-space-tight) 8px;
   background: transparent;
   border: 0;
   border-bottom: 2px solid transparent;
@@ -128,7 +132,30 @@ select {
 .feed-toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px;
+  gap: var(--ytf-space);
+}
+
+/* Label-less field for the feed filters; the first option names what it filters. */
+.field--compact {
+  position: relative;
+}
+
+.field.field--compact select {
+  padding: 3px 6px;
+  font-size: 0.82rem;
+}
+
+/* Hidden on screen, still read by screen readers. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .field {
@@ -226,8 +253,8 @@ select {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: var(--ytf-space);
+  padding: var(--ytf-space-tight) 8px;
   border: 1px solid var(--ytf-border);
   border-radius: var(--ytf-radius-small);
   background: var(--ytf-surface);
@@ -257,13 +284,17 @@ select {
 .feed-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--ytf-space-tight);
+}
+
+.hint--small {
+  font-size: 0.75rem;
 }
 
 .video-card {
   display: grid;
-  grid-template-columns: minmax(88px, 36%) minmax(0, 1fr);
-  gap: 9px;
+  grid-template-columns: minmax(84px, 34%) minmax(0, 1fr);
+  gap: 8px;
   overflow: hidden;
   background: var(--ytf-surface);
   border: 1px solid var(--ytf-border);
@@ -279,17 +310,21 @@ select {
   text-underline-offset: 2px;
 }
 
+/* Fills the card's full height (set by the text); the image is cropped to fit, no gap below. */
 .video-card__thumb {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  aspect-ratio: 16 / 9;
+  min-height: 48px;
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--ytf-accent) 30%, transparent), transparent),
     var(--ytf-surface-strong);
 }
 
 .video-card__image {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -305,9 +340,9 @@ select {
 .video-card__body {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
-  padding: 8px 8px 8px 0;
+  padding: var(--ytf-space-tight) var(--ytf-space) var(--ytf-space-tight) 0;
 }
 
 /* Pushed to the bottom of the card: date on the left, source tag on the right. */
@@ -317,7 +352,7 @@ select {
   justify-content: space-between;
   gap: 6px;
   margin-top: auto;
-  padding-top: 4px;
+  padding-top: 2px;
 }
 
 .badge {
@@ -356,10 +391,10 @@ select {
   overflow: hidden;
   font-size: 0.88rem;
   font-weight: 650;
-  line-height: 1.3;
+  line-height: 1.25;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .video-card__channel {
@@ -390,22 +425,64 @@ select {
   font-size: 0.82rem;
 }
 
+/* Collapsible settings section (<details>), closed by default. */
 .settings-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-bottom: 14px;
   border-bottom: 1px solid var(--ytf-border);
 }
 
-.settings-section:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
-}
-
 .settings-section__title {
+  display: flex;
+  align-items: center;
+  gap: var(--ytf-space);
+  padding: var(--ytf-space) 2px;
+  cursor: pointer;
   font-size: 0.92rem;
   font-weight: 700;
+  list-style: none;
+  user-select: none;
+}
+
+.settings-section__title::-webkit-details-marker {
+  display: none;
+}
+
+/* Chevron: points right when closed, down when open. */
+.settings-section__title::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid var(--ytf-muted);
+  border-bottom: 2px solid var(--ytf-muted);
+  transform: rotate(-45deg);
+}
+
+.settings-section[open] > .settings-section__title::before {
+  transform: rotate(45deg);
+}
+
+.settings-section__title:hover {
+  color: var(--ytf-accent);
+}
+
+.settings-section__title:focus-visible {
+  outline: 2px solid var(--ytf-accent);
+  outline-offset: -2px;
+}
+
+.settings-section__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 2px 12px;
+}
+
+.settings-section__subtitle {
+  color: var(--ytf-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .toolbar {
@@ -523,7 +600,8 @@ select {
   display: none;
 }
 
-@media (max-width: 320px) {
+/* Only stack on very narrow sidebars; side by side saves height down to here. */
+@media (max-width: 240px) {
   .feed-toolbar {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -532,8 +610,13 @@ select {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* Stacked: the thumbnail spans the width, so give it its natural 16:9 shape. */
+  .video-card__thumb {
+    aspect-ratio: 16 / 9;
+  }
+
   .video-card__body {
-    padding: 0 8px 8px;
+    padding: 0 var(--ytf-space) var(--ytf-space-tight);
   }
 }
 
@@ -545,5 +628,9 @@ select {
       background-color 120ms ease,
       border-color 120ms ease,
       color 120ms ease;
+  }
+
+  .settings-section__title::before {
+    transition: transform 120ms ease;
   }
 }
