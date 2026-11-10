@@ -61,7 +61,7 @@ pref("devtools.debugger.remote-enabled", false);
 
 LibreWolf applies that at startup and overrides the temporary profile that `web-ext` creates. `web-ext` then cannot connect to the DevTools server and reports `ECONNREFUSED`.
 
-`bun run start:librewolf` avoids editing LibreWolf's global configuration. It runs `scripts/run-librewolf.mjs`, which passes:
+`bun run start:librewolf` avoids editing LibreWolf's global configuration. It runs `scripts/run-librewolf.ts`, which passes:
 
 ```text
 --pref=autoadmin.global_config_url=file://<project>/.librewolf-overrides.cfg
@@ -79,12 +79,13 @@ Or load the extension manually with `about:debugging`.
 
 ## Load manually as a temporary add-on
 
-Use this when you want to test the built source directly without `web-ext run`.
+Use this when you want to test the compiled extension without `web-ext run`.
 
-1. Open `about:debugging#/runtime/this-firefox`.
-2. Click **Load Temporary Add-on…**.
-3. Select `src/manifest.json` (Linux/macOS) or `src\manifest.json` (Windows).
-4. Open the sidebar with **View → Sidebar → FeedTubes**.
+1. Run `bun run build:ext`. This compiles the TypeScript in `src/` into `build/`.
+2. Open `about:debugging#/runtime/this-firefox`.
+3. Click **Load Temporary Add-on…**.
+4. Select `build/manifest.json` (Linux/macOS) or `build\manifest.json` (Windows). `src/` holds TypeScript, which the browser cannot load.
+5. Open the sidebar with **View → Sidebar → FeedTubes**.
 
 Temporary add-ons are removed when the browser restarts. Reload them from `about:debugging` after a restart.
 
@@ -98,14 +99,11 @@ There is no standard keyboard shortcut for opening an arbitrary sidebar. If you 
 
 ## Permanent installation
 
-A permanent install requires a signed extension:
+See [RELEASE.md](RELEASE.md). It covers:
 
-1. Replace the placeholder ID `feedtubes@example.com` in `src/manifest.json` with the ID assigned by AMO.
-2. Build the package with `bun run build`.
-3. Sign it through [addons.mozilla.org](https://addons.mozilla.org/) or `web-ext sign` with AMO credentials.
-4. Install the signed `.xpi` in Firefox.
-
-LibreWolf may allow unsigned extensions depending on its build configuration. Do not rely on that for distribution; sign the extension for normal Firefox users.
+- **Private signed build:** signed by Mozilla as "unlisted", installed from a file, never published. Works in every Firefox edition.
+- **Public AMO release:** listed and reviewed, with automatic updates.
+- **Unsigned build for local install:** from a file in Firefox Developer Edition, Nightly, ESR, or LibreWolf, with no Mozilla account.
 
 ## Verify the build
 
@@ -114,7 +112,7 @@ bun run build
 unzip -l dist/*.zip
 ```
 
-The zip must contain `manifest.json` at its root and only files from `src/`.
+The zip must contain `manifest.json` at its root, compiled `.js` files, and static assets only: no `.ts` sources, tests, or docs.
 
 ## Troubleshooting
 
@@ -134,7 +132,7 @@ The zip must contain `manifest.json` at its root and only files from `src/`.
 ### The panel is blank or unstyled
 
 - Open the sidebar’s own console from `about:debugging` or the browser toolbox.
-- Confirm `sidebar/sidebar.html`, `sidebar/sidebar.css`, and `sidebar/sidebar.js` exist in `src/`.
+- Confirm `sidebar/sidebar.html`, `sidebar/sidebar.css`, and `sidebar/sidebar.js` exist in `build/` (run `bun run build:ext`).
 - Check for CSP errors; the scaffold uses no inline scripts or remote resources.
 
 ### `web-ext` fails to start

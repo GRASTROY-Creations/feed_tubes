@@ -74,7 +74,8 @@ Open the panel with **View → Sidebar → FeedTubes**.
 ## Documentation
 
 - [PLAN.md](PLAN.md) — full execution plan, architecture decisions, and acceptance criteria.
-- [INSTALL.md](INSTALL.md) — loading, running, signing, and troubleshooting.
+- [INSTALL.md](INSTALL.md) — loading, running, and troubleshooting.
+- [RELEASE.md](RELEASE.md) — building, signing (listed and unlisted), shipping, and installing from a file.
 - [ARCHITECTURE.md](ARCHITECTURE.md) — extension architecture, security, theming, and accessibility.
 - [DEVELOPMENT.md](DEVELOPMENT.md) — Bun toolchain, scripts, linting, formatting, and releases.
 - [TESTING.md](TESTING.md) — automated checks and manual browser test matrix.

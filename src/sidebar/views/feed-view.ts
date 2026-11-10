@@ -162,7 +162,7 @@ export function initFeedView(app: AppContext): View {
       return {
         action: "settings",
         title: "No subscriptions yet",
-        text: "Add a channel or import a subscription file to get started.",
+        text: "Add a channel or import a subscription file.",
         button: "Open settings",
       };
     }
@@ -172,8 +172,8 @@ export function initFeedView(app: AppContext): View {
         title: app.refreshing ? "Refreshing feeds" : "No videos yet",
         text: app.refreshing
           ? "Your subscriptions are being checked for new videos."
-          : "Refresh to fetch the latest videos from your subscriptions.",
-        button: "Refresh now",
+          : "Fetch the latest videos from your subscriptions.",
+        button: "Fetch now",
       };
     }
     return null;

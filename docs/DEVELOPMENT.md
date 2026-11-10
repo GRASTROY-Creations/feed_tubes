@@ -164,14 +164,7 @@ Expected root entries include `manifest.json`, `background/`, `lib/`, `sidebar/`
 
 ## Release checklist
 
-1. Update `version` in `src/manifest.json` and `package.json`.
-2. Replace the placeholder extension ID if publishing.
-3. Run `bun run lint`.
-4. Run `bun run build`.
-5. Inspect the zip.
-6. Test in Firefox and LibreWolf on Linux and Windows.
-7. Sign with AMO or `web-ext sign`.
-8. Publish or distribute the signed package.
+See [RELEASE.md](RELEASE.md). It covers versioning, the source archive AMO reviewers need, unlisted and listed signing, and installing from a file.
 
 ## Adding future code
 
