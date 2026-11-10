@@ -19,6 +19,7 @@ import { showToast } from "../../components/toast.js";
 import { instanceLabel } from "./instances-section.js";
 import {
   fillPlatformOptions,
+  fitListToRows,
   hintParagraph,
   listRow,
   submitButtonOf,
@@ -27,8 +28,6 @@ import {
 } from "./shared.js";
 
 const DEFAULT_PLATFORM = "youtube";
-/** Entries visible in the subscription list before it scrolls; the half row hints at more. */
-const VISIBLE_ROWS = 5.5;
 
 export function initSubscriptionsSection(app: AppContext): SettingsSection {
   const elements = {
@@ -213,28 +212,7 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     }
 
     elements.list.replaceChildren(...values.map(subscriptionRow));
-    fitListToRows();
-  }
-
-  /**
-   * Caps the scrollable list at `VISIBLE_ROWS` entries. Rows all have the same layout, so one
-   * measured row gives the height; a closed section has no layout, so this reruns on open.
-   */
-  function fitListToRows(): void {
-    const firstRow = elements.list.firstElementChild;
-    if (!(firstRow instanceof HTMLElement) || firstRow.offsetHeight === 0) {
-      return;
-    }
-    const style = getComputedStyle(elements.list);
-    const gap = parseFloat(style.rowGap) || 0;
-    const frame =
-      parseFloat(style.paddingTop) +
-      parseFloat(style.paddingBottom) +
-      parseFloat(style.borderTopWidth) +
-      parseFloat(style.borderBottomWidth);
-    const gaps = Math.ceil(VISIBLE_ROWS) - 1;
-    const height = VISIBLE_ROWS * firstRow.offsetHeight + gaps * gap + frame;
-    elements.list.style.maxHeight = `${Math.ceil(height)}px`;
+    fitListToRows(elements.list);
   }
 
   function render(): void {
@@ -383,7 +361,9 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     );
   });
 
-  elements.section.addEventListener("toggle", fitListToRows);
+  elements.section.addEventListener("toggle", () => {
+    fitListToRows(elements.list);
+  });
   elements.search.addEventListener("input", renderList);
   elements.filter.addEventListener("change", renderList);
   elements.platform.addEventListener("change", updateForm);

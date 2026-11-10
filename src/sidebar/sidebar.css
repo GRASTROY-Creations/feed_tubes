@@ -590,6 +590,13 @@ select {
   justify-content: flex-end;
 }
 
+/* Right-hand group inside a .form-actions row (secondary actions stay on the left). */
+.form-actions__end {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
 .checkbox {
   display: flex;
   align-items: center;

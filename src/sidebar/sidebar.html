@@ -196,14 +196,12 @@
           </div>
         </details>
 
-        <details class="settings-section">
+        <details id="settings-instances" class="settings-section">
           <summary class="settings-section__title">Instances</summary>
           <div class="settings-section__body">
             <p class="hint">
               PeerTube instances and bridge bases. Each subscription stores its own instance.
             </p>
-            <div id="instance-list" class="list"></div>
-
             <form id="instance-form" class="form">
               <label class="field">
                 <span>Kind</span>
@@ -231,14 +229,32 @@
                 />
               </label>
               <div class="form-actions">
-                <button class="button button--primary" type="submit">Add instance</button>
-                <button id="instance-test" class="button" type="button">Test connection</button>
-                <button id="instance-cancel" class="button button--quiet" type="button" hidden>
-                  Cancel
+                <button
+                  id="instance-test"
+                  class="button"
+                  type="button"
+                  title="Test Connection"
+                  aria-label="Test Connection"
+                >
+                  Test
                 </button>
+                <div class="form-actions__end">
+                  <button id="instance-cancel" class="button button--quiet" type="button" hidden>
+                    Cancel
+                  </button>
+                  <button class="button button--primary" type="submit">Add</button>
+                </div>
               </div>
             </form>
             <p id="instance-result" class="hint" role="status"></p>
+
+            <div class="toolbar">
+              <label class="field field--inline">
+                <span>Search</span>
+                <input id="instance-search" type="search" placeholder="Label, kind, or URL" />
+              </label>
+            </div>
+            <div id="instance-list" class="list list--scroll"></div>
 
             <hr class="divider" />
 
@@ -283,8 +299,8 @@
             <p id="twitch-status" class="hint" role="status"></p>
             <p class="hint">
               *Register a free application at dev.twitch.tv, category "Website Integration", with
-              the redirect URL above. Twitch channels with an RSS bridge feed URL work without
-              signing in.
+              the redirect URL above. <br />*Twitch channels with an RSS bridge feed URL work
+              without signing in.
             </p>
           </div>
         </details>
@@ -294,7 +310,7 @@
           <div class="settings-section__body">
             <p class="hint">
               Import FeedTubes CSV/JSON, YouTube Takeout/FreeTube CSV, FreeTube .db, NewPipe JSON,
-              or OPML. Exports are portable files you can keep or re-import.
+              or OPML.
             </p>
             <label class="field">
               <span>Subscription file</span>
@@ -303,13 +319,13 @@
             <label class="field">
               <span>Merge mode</span>
               <select id="import-mode">
-                <option value="merge">Merge — add new and update duplicates</option>
-                <option value="skip">Skip duplicates</option>
-                <option value="replace">Replace — remove existing subscriptions</option>
+                <option value="merge">Merge — Add and Update</option>
+                <option value="skip">Fill Up — Skip Duplicates</option>
+                <option value="replace">Replace — Remove All Current Subscriptions</option>
               </select>
             </label>
             <button id="import-button" class="button button--primary" type="button">
-              Import subscriptions
+              Import
             </button>
             <p id="import-report" class="hint" role="status"></p>
 
@@ -320,9 +336,9 @@
               <select id="export-format"></select>
             </label>
             <label class="field">
-              <span>Scope</span>
+              <span>Filter</span>
               <select id="export-scope">
-                <option value="all">All subscriptions</option>
+                <option value="all">All Subscriptions</option>
                 <option value="enabled">Enabled only</option>
               </select>
             </label>

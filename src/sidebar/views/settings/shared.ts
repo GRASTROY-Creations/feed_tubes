@@ -80,6 +80,30 @@ export function listRow({
   });
 }
 
+/** Entries a scrollable settings list shows before it scrolls; the half row hints at more. */
+export const VISIBLE_LIST_ROWS = 5.5;
+
+/**
+ * Caps a `.list--scroll` list at `rows` entries. Rows share one layout, so a single measured
+ * row gives the height. A closed section has no layout, so call this again when it opens.
+ */
+export function fitListToRows(list: HTMLElement, rows = VISIBLE_LIST_ROWS): void {
+  const firstRow = list.firstElementChild;
+  if (!(firstRow instanceof HTMLElement) || firstRow.offsetHeight === 0) {
+    return;
+  }
+  const style = getComputedStyle(list);
+  const gap = parseFloat(style.rowGap) || 0;
+  const frame =
+    parseFloat(style.paddingTop) +
+    parseFloat(style.paddingBottom) +
+    parseFloat(style.borderTopWidth) +
+    parseFloat(style.borderBottomWidth);
+  const gaps = Math.ceil(rows) - 1;
+  const height = rows * firstRow.offsetHeight + gaps * gap + frame;
+  list.style.maxHeight = `${Math.ceil(height)}px`;
+}
+
 /** Runs `action` with `button` disabled, re-enabling it afterwards. */
 export async function withDisabled<T>(
   button: HTMLButtonElement,

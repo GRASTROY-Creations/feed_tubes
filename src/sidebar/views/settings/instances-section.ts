@@ -8,6 +8,7 @@ import { normalizeBaseUrl, originPattern } from "../../../lib/url.js";
 import type { AppContext } from "../../app-context.js";
 import { showToast } from "../../components/toast.js";
 import {
+  fitListToRows,
   hintParagraph,
   listRow,
   submitButtonOf,
@@ -24,6 +25,8 @@ export function instanceLabel(instance: Instance): string {
 
 export function initInstancesSection(app: AppContext): SettingsSection {
   const elements = {
+    section: getElement("settings-instances", HTMLDetailsElement),
+    search: getElement("instance-search", HTMLInputElement),
     list: getElement("instance-list", HTMLDivElement),
     form: getElement("instance-form", HTMLFormElement),
     kind: getElement("instance-kind", HTMLSelectElement),
@@ -48,7 +51,7 @@ export function initInstancesSection(app: AppContext): SettingsSection {
     elements.kind.value = instance.kind;
     elements.label.value = instance.label;
     elements.url.value = instance.url;
-    setText(submit, "Save instance");
+    setText(submit, "Save");
     elements.cancel.hidden = false;
     setMessage(elements.result, "");
     elements.form.scrollIntoView({ block: "nearest" });
@@ -66,11 +69,26 @@ export function initInstancesSection(app: AppContext): SettingsSection {
     showToast("Instance removed.");
   }
 
+  function matchesSearch(instance: Instance, search: string): boolean {
+    return (
+      !search ||
+      [instanceLabel(instance), INSTANCE_KIND_LABELS[instance.kind], instance.url].some((value) =>
+        value.toLowerCase().includes(search)
+      )
+    );
+  }
+
   function render(): void {
-    const values = instances();
+    const search = elements.search.value.trim().toLowerCase();
+    const values = instances().filter((instance) => matchesSearch(instance, search));
+
     if (values.length === 0) {
       elements.list.replaceChildren(
-        hintParagraph("No instances configured. Add a PeerTube instance or bridge base below.")
+        hintParagraph(
+          instances().length === 0
+            ? "No instances configured. Add a PeerTube instance or bridge base above."
+            : "No instances match the search."
+        )
       );
       return;
     }
@@ -88,13 +106,14 @@ export function initInstancesSection(app: AppContext): SettingsSection {
         })
       )
     );
+    fitListToRows(elements.list);
   }
 
   function reset(): void {
     editingId = null;
     elements.form.reset();
     elements.kind.value = "peertube";
-    setText(submit, "Add instance");
+    setText(submit, "Add");
     elements.cancel.hidden = true;
     setMessage(elements.result, "");
   }
@@ -172,6 +191,10 @@ export function initInstancesSection(app: AppContext): SettingsSection {
   });
 
   elements.cancel.addEventListener("click", reset);
+  elements.search.addEventListener("input", render);
+  elements.section.addEventListener("toggle", () => {
+    fitListToRows(elements.list);
+  });
 
   return { render, reset };
 }
