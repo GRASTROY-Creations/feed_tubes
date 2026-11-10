@@ -88,9 +88,9 @@
         <details class="settings-section">
           <summary class="settings-section__title">General</summary>
           <div class="settings-section__body">
-            <h3 class="settings-section__subtitle">Automatic refresh</h3>
+            <h3 class="settings-section__subtitle">Automatic Fetching</h3>
             <label class="field">
-              <span>Refresh interval</span>
+              <span>Fetching interval</span>
               <select id="refresh-interval">
                 <option value="60">Every 1 hour</option>
                 <option value="180">Every 3 hours</option>
@@ -99,11 +99,9 @@
             </label>
             <label class="checkbox">
               <input id="refresh-enabled" type="checkbox" />
-              <span>Refresh feeds in the background</span>
+              <span>Fetch feed in the background</span>
             </label>
-            <p class="hint">
-              The feed also refreshes when you open the sidebar and the cache is stale.
-            </p>
+            <p class="hint">*Feed is fetched on sidebar opening if cache is stale.</p>
 
             <hr class="divider" />
 
@@ -115,6 +113,7 @@
                 Reset all data
               </button>
             </div>
+            <p class="hint">*Clearing Cache does not remove subscriptions or settings</p>
             <p class="hint">
               Version <span id="version">0.2.0</span>. Feed requests go directly to the platforms
               and bridge services you configure. FeedTubes does not collect data.

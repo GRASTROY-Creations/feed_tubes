@@ -12,17 +12,17 @@ export function initDataSection(app: AppContext, onReset: () => void): SettingsS
 
   getElement("clear-cache", HTMLButtonElement).addEventListener("click", () => {
     void app.clearCache().then(() => {
-      showToast("Feed cache cleared.");
+      showToast("Cache cleared.");
     });
   });
 
   getElement("reset-data", HTMLButtonElement).addEventListener("click", () => {
-    if (!window.confirm("Reset all FeedTubes data, including subscriptions and settings?")) {
+    if (!window.confirm("Clear all FeedTubes data, including subscriptions and settings?")) {
       return;
     }
     void app.resetAll().then(() => {
       onReset();
-      showToast("All data reset.");
+      showToast("All data purged.");
     });
   });
 
@@ -30,10 +30,7 @@ export function initDataSection(app: AppContext, onReset: () => void): SettingsS
 
   return {
     render() {
-      setText(
-        storageUsage,
-        `Stored data: ${formatBytes(estimateStorageBytes(app.state))}. Cache clears safely; subscriptions and settings are kept.`
-      );
+      setText(storageUsage, `Stored data: ${formatBytes(estimateStorageBytes(app.state))}.`);
     },
   };
 }

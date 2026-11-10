@@ -64,7 +64,7 @@ export function formatDateTime(value: DateInput): string {
 
 export function formatLastUpdated(value: DateInput): string {
   const date = parseDate(value);
-  return date ? `Updated ${formatRelativeTime(date)}` : "Never updated";
+  return date ? `Updated ${formatRelativeTime(date)}` : "No Feed";
 }
 
 export function toIsoString(value: DateInput): string {

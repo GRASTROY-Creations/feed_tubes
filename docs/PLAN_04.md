@@ -292,7 +292,7 @@ Use `role="tablist"`, `role="tab"`, `aria-selected`, `aria-controls`, `role="tab
 - Bulk actions: enable all, disable all, delete disabled.
 - Duplicate detection and inline validation.
 
-**C. Automatic refresh**
+**C. Automatic Fetching**
 
 - Select: **Every 1 hour**, **Every 3 hours**, **Every 6 hours**.
 - Default: 3 hours.
@@ -555,7 +555,7 @@ Automated:
 
 Manual:
 
-- Set the refresh interval to 1 hour; use the background console to trigger the alarm for a faster test.
+- Set the fetch interval to 1 hour; use the background console to trigger the alarm for a faster test.
 - Confirm the cache updates while the sidebar is closed.
 - Confirm changing the interval reschedules the alarm.
 - Confirm the sidebar re-renders when it receives `feed-updated`.
@@ -565,7 +565,7 @@ Acceptance criteria:
 
 - **#1:** Research documented; unified schema implemented; YouTube, PeerTube, Odysee, Rutube, Dailymotion native; VK/Bilibili/Rumble via documented bridge/RSS.
 - **#2:** Subscriptions persist as JSON in `storage.local`; CSV/JSON import/export works and round-trips; YouTube Takeout CSV imports.
-- **#3:** Settings tab manages instances, subscriptions, refresh interval, and import/export; changes persist.
+- **#3:** Settings tab manages instances, subscriptions, fetch interval, and import/export; changes persist.
 - **#4:** Clicking a card opens the video in a new tab without disturbing the sidebar.
 - **#5:** Every card shows thumbnail, source badge, channel, title, and published date, with fallback/error states.
 - **Feed layout:** one column, mixed sources, platform/channel filtering.

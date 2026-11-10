@@ -1,0 +1,15 @@
+# Keep LF line endings in the working copy on every OS, matching .prettierrc.json
+# ("endOfLine": "lf") and .editorconfig. This overrides a local core.autocrlf=true.
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files: never touch line endings.
+*.png binary
+*.jpg binary
+*.ico binary
+*.zip binary
+*.xpi binary
