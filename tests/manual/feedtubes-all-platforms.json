@@ -1,0 +1,106 @@
+{
+  "format": "feedtubes.subscriptions",
+  "version": 1,
+  "exportedAt": "2026-11-10T00:00:00.000Z",
+  "subscriptions": [
+    {
+      "platform": "youtube",
+      "instanceUrl": "https://www.youtube.com",
+      "channelId": "UCb2e-ivDST748PmPJOn4DnA",
+      "channelName": "Universal Ambients",
+      "channelUrl": "https://www.youtube.com/channel/UCb2e-ivDST748PmPJOn4DnA",
+      "feedUrl": "",
+      "enabled": true
+    },
+    {
+      "platform": "peertube",
+      "instanceUrl": "https://tilvids.com",
+      "channelId": "thelinuxexperiment_channel",
+      "channelName": "The Linux Experiment",
+      "channelUrl": "https://tilvids.com/video-channels/thelinuxexperiment_channel",
+      "feedUrl": "",
+      "enabled": true
+    },
+    {
+      "platform": "odysee",
+      "instanceUrl": "https://odysee.com",
+      "channelId": "@veritasium:f",
+      "channelName": "Veritasium",
+      "channelUrl": "https://odysee.com/@veritasium:f",
+      "feedUrl": "",
+      "enabled": true
+    },
+    {
+      "platform": "rutube",
+      "instanceUrl": "https://rutube.ru",
+      "channelId": "23704195",
+      "channelName": "RUTUBE",
+      "channelUrl": "https://rutube.ru/video/person/23704195/",
+      "feedUrl": "",
+      "enabled": true
+    },
+    {
+      "platform": "dailymotion",
+      "instanceUrl": "https://www.dailymotion.com",
+      "channelId": "France24",
+      "channelName": "FRANCE 24",
+      "channelUrl": "https://www.dailymotion.com/France24",
+      "feedUrl": "",
+      "enabled": true
+    },
+    {
+      "platform": "dtube",
+      "instanceUrl": "https://d.tube",
+      "channelId": "styles",
+      "channelName": "Styles",
+      "channelUrl": "https://d.tube/channel/styles",
+      "feedUrl": "",
+      "enabled": true
+    },
+    {
+      "platform": "pixabay",
+      "instanceUrl": "https://pixabay.com",
+      "channelId": "coverr-free-footage-1281706",
+      "channelName": "Coverr-Free-Footage",
+      "channelUrl": "https://pixabay.com/users/coverr-free-footage-1281706/",
+      "feedUrl": "",
+      "enabled": true
+    },
+    {
+      "platform": "vkvideo",
+      "instanceUrl": "https://rsshub.app",
+      "channelId": "vk",
+      "channelName": "VK (via RSSHub)",
+      "channelUrl": "https://vk.com/video/@vk",
+      "feedUrl": "https://rsshub.app/vk/videos/vk",
+      "enabled": true
+    },
+    {
+      "platform": "bilibili",
+      "instanceUrl": "https://rsshub.ktachibana.party",
+      "channelId": "2267573",
+      "channelName": "Bilibili UID 2267573 (via RSSHub)",
+      "channelUrl": "https://space.bilibili.com/2267573",
+      "feedUrl": "https://rsshub.ktachibana.party/bilibili/user/video/2267573",
+      "enabled": true
+    },
+    {
+      "platform": "rumble",
+      "instanceUrl": "https://rsshub.app",
+      "channelId": "Bongino",
+      "channelName": "Rumble Bongino (via RSSHub)",
+      "channelUrl": "https://rumble.com/c/Bongino",
+      "feedUrl": "https://rsshub.app/rumble/c/Bongino",
+      "enabled": true
+    },
+    {
+      "platform": "generic",
+      "instanceUrl": "https://vimeo.com",
+      "channelId": "",
+      "channelName": "Vimeo Staff Picks",
+      "channelUrl": "https://vimeo.com/channels/staffpicks",
+      "feedUrl": "https://vimeo.com/channels/staffpicks/videos/rss",
+      "enabled": true
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 import { getPlatform, isFeedOnlyPlatform, isPlatformId } from "./platforms/registry.js";
 import { ODYSEE_ORIGIN, odyseeHandle } from "./platforms/odysee.js";
 import { DAILYMOTION_ORIGIN } from "./platforms/dailymotion.js";
+import { dtubeChannelUrl } from "./platforms/dtube.js";
+import { pixabayProfileUrl } from "./platforms/pixabay.js";
 import { RUTUBE_ORIGIN } from "./platforms/rutube.js";
 import { toYouTubeHandle, youtubeChannelOrHandleUrl } from "./platforms/youtube-urls.js";
 import type { PlatformId, RawSubscription, Subscription } from "./types.js";
@@ -187,6 +189,35 @@ function normalizeDailymotion(input: SubscriptionInput): DerivedFields {
   return { channelId, channelUrl };
 }
 
+/** Accepts `name`, `@name`, or a `d.tube/channel/<name>` URL; stores the bare name. */
+function normalizeDtube(input: SubscriptionInput): DerivedFields {
+  let channelId = input.channelId.replace(/^@/, "");
+
+  const url = urlFromInput(input);
+  if (url && /(^|\.)d\.tube$/i.test(url.hostname)) {
+    const match = /^\/channel\/([^/]+)/.exec(url.pathname)?.[1];
+    channelId = match ? decodeURIComponent(match) : "";
+  }
+
+  return { channelId, channelUrl: channelId ? dtubeChannelUrl(channelId) : "" };
+}
+
+/**
+ * Accepts a contributor name, a `name-1234` profile slug, or a `pixabay.com/users/name-1234/`
+ * URL. The slug (with its numeric id, when known) is stored as the channel id.
+ */
+function normalizePixabay(input: SubscriptionInput): DerivedFields {
+  let channelId = input.channelId.replace(/^@/, "");
+
+  const url = urlFromInput(input);
+  if (url && /(^|\.)pixabay\.com$/i.test(url.hostname)) {
+    const match = /^\/(?:[a-z]{2}\/)?users\/([^/]+)/.exec(url.pathname)?.[1];
+    channelId = match ? decodeURIComponent(match) : "";
+  }
+
+  return { channelId, channelUrl: channelId ? pixabayProfileUrl(channelId) : "" };
+}
+
 function normalizeFeed(input: SubscriptionInput): DerivedFields {
   const channelUrl = normalizeUrl(input.channelUrl);
   let feedUrl = normalizeUrl(input.feedUrl);
@@ -208,6 +239,8 @@ const NORMALIZERS: Record<PlatformId, (input: SubscriptionInput) => DerivedField
   odysee: normalizeOdysee,
   rutube: normalizeRutube,
   dailymotion: normalizeDailymotion,
+  dtube: normalizeDtube,
+  pixabay: normalizePixabay,
   vkvideo: normalizeFeed,
   bilibili: normalizeFeed,
   rumble: normalizeFeed,

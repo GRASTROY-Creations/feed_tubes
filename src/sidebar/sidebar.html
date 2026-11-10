@@ -105,6 +105,25 @@
 
             <hr class="divider" />
 
+            <h3 class="settings-section__subtitle">API Keys</h3>
+            <label class="field">
+              <span>Pixabay API key</span>
+              <input
+                id="pixabay-api-key"
+                type="password"
+                autocomplete="off"
+                spellcheck="false"
+                maxlength="100"
+                placeholder="Paste your key"
+              />
+            </label>
+            <p class="hint">
+              *Free key from pixabay.com/api/docs (Pixabay account needed). Stored only in this
+              browser and never included in exports.
+            </p>
+
+            <hr class="divider" />
+
             <h3 class="settings-section__subtitle">Data &amp; About</h3>
             <p id="storage-usage" class="hint"></p>
             <div class="form-actions">
@@ -113,10 +132,10 @@
                 Reset all data
               </button>
             </div>
-            <p class="hint">*Clearing Cache does not remove subscriptions or settings</p>
             <p class="hint">
-              Version <span id="version">0.2.0</span>. Feed requests go directly to the platforms
-              and bridge services you configure. FeedTubes does not collect data.
+              *Clearing Cache does not remove subscriptions or settings<br />
+              *Feed requests go directly to the platforms and bridge services you configure.<br />
+              *FeedTubes does not collect data.
             </p>
           </div>
         </details>
@@ -281,6 +300,9 @@
             <button id="export-button" class="button" type="button">Download file</button>
           </div>
         </details>
+
+        <!-- Not a section: always shown at the bottom of the Settings tab. -->
+        <footer class="settings-footer">Version <span id="version"></span></footer>
       </section>
     </main>
 

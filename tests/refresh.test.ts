@@ -162,7 +162,7 @@ describe("describeRefresh", () => {
     expect(
       describeRefresh({ total: 2, failures: 0, throttled: 2, nextRefreshAt: inMinutes(2.5) }, NOW)
     ).toEqual({
-      message: "All sources were refreshed less than 5 minutes ago; next refresh in 3 min.",
+      message: "All sources were refreshed recently; next refresh in 3 min.",
       error: false,
     });
   });

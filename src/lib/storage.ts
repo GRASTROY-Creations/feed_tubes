@@ -22,6 +22,9 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
     platformFilter: "all",
     channelFilter: "all",
   }),
+  apiKeys: Object.freeze({
+    pixabay: "",
+  }),
 });
 
 export const DEFAULT_REFRESH_STATE: Readonly<RefreshState> = Object.freeze({
@@ -46,6 +49,7 @@ function mergeSettings(value: unknown): Settings {
     refresh: { ...defaults.refresh, ...asRecord(stored.refresh) },
     feed: { ...defaults.feed, ...asRecord(stored.feed) },
     ui: { ...defaults.ui, ...asRecord(stored.ui) },
+    apiKeys: { ...defaults.apiKeys, ...asRecord(stored.apiKeys) },
   };
 }
 

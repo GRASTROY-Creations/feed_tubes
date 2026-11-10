@@ -1,8 +1,10 @@
 import type { InstanceKind, PlatformAdapter, PlatformId, PlatformKind } from "../types.js";
 import { DAILYMOTION_ORIGIN, dailymotionAdapter } from "./dailymotion.js";
+import { DTUBE_API, DTUBE_ORIGIN, dtubeAdapter } from "./dtube.js";
 import { genericRssAdapter } from "./generic-rss.js";
 import { ODYSEE_ORIGIN, odyseeAdapter } from "./odysee.js";
 import { peertubeAdapter } from "./peertube.js";
+import { PIXABAY_CACHE_MS, PIXABAY_ORIGIN, pixabayAdapter } from "./pixabay.js";
 import { RUTUBE_ORIGIN, rutubeAdapter } from "./rutube.js";
 import { YOUTUBE_ORIGIN } from "./youtube-urls.js";
 import { youtubeAdapter } from "./youtube.js";
@@ -21,6 +23,8 @@ export interface PlatformDefinition {
   readonly instanceKind: InstanceKind | null;
   /** Placeholder for the channel input of the subscription form. */
   readonly placeholder: string;
+  /** Minimum time between successful fetches, when the platform asks for more than the default. */
+  readonly refreshCooldownMs?: number;
 }
 
 function nativePlatform(
@@ -82,6 +86,16 @@ export const PLATFORMS = {
     dailymotionAdapter,
     "Username or channel URL"
   ),
+  dtube: {
+    ...nativePlatform("D.Tube", DTUBE_ORIGIN, dtubeAdapter, "Channel name or d.tube/channel/… URL"),
+    // Videos are read from the API host, not the website.
+    permissionOrigin: `${DTUBE_API}/*`,
+  },
+  pixabay: {
+    ...nativePlatform("Pixabay", PIXABAY_ORIGIN, pixabayAdapter, "Contributor name or profile URL"),
+    // Pixabay's API terms ask for results to be cached for 24 hours.
+    refreshCooldownMs: PIXABAY_CACHE_MS,
+  },
   vkvideo: feedPlatform("VK Video", "bridge", "vk", "Optional channel ID"),
   bilibili: feedPlatform("Bilibili", "bridge", "bilibili", "Optional UID"),
   rumble: feedPlatform("Rumble", "bridge", "rumble", "Optional channel slug"),

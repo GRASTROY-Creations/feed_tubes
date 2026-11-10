@@ -86,6 +86,7 @@ function fakeYouTube(routes: FakeYouTube): { context: AdapterContext; requested:
         route(url, url.includes("/navigation/resolve_url") ? routes.resolveUrl : browseResponse),
       timeoutMs: 1000,
       itemsPerSource: 10,
+      apiKeys: { pixabay: "" },
     },
   };
 }

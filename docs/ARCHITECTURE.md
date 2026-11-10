@@ -22,7 +22,8 @@ src/
     url.ts, time.ts, csv.ts, xml.ts, text.ts, guards.ts, errors.ts, dom.ts
     platforms/
       registry.ts               one PlatformDefinition per platform
-      youtube.ts, peertube.ts, rutube.ts, odysee.ts, dailymotion.ts, generic-rss.ts
+      youtube.ts, peertube.ts, rutube.ts, odysee.ts, dailymotion.ts, dtube.ts, pixabay.ts,
+      generic-rss.ts
   sidebar/
     sidebar.html, sidebar.css
     sidebar.ts                  App controller (implements AppContext)
@@ -63,6 +64,16 @@ YouTube's feed only accepts `UC…` channel ids. Handles, bare names (stored as 
    - Dates from the fallback are approximate, because YouTube only gives "3 days ago".
    - The internal API is undocumented, so all of its fields are read defensively.
    - An empty Videos tab is reported as an error, since that more likely means a changed response format than a channel with no uploads.
+
+### Pixabay
+
+Pixabay subscriptions follow one contributor through the official video API (`pixabay.com/api/videos/`).
+
+- **API key:** every request needs the user's personal, free key. It's entered under Settings → General → API Keys and stored in `settings.apiKeys`. Exports contain only subscriptions, so the key never leaves the browser except in requests to Pixabay.
+- **No key in messages:** `errors.ts` redacts credential query parameters (`key`, `token`, …) from every HTTP and network error, so a failed request can't put the key into the error banner or the cache.
+- **Contributor filter:** the API has none. The adapter searches `q=user:<name>` (undocumented syntax) and keeps only hits whose `user_id` or `user` matches. If Pixabay ignores the syntax, the source reports "no videos" rather than showing unrelated footage.
+- **Dates:** results have no upload time, only the upload day in the CDN path, so dates are day-precise.
+- **24-hour cooldown:** Pixabay asks API users to cache results for a day. The registry entry sets `refreshCooldownMs` to 24 hours, applied only after a successful fetch, so a failed fetch (for example, a missing key) retries on the normal cooldown.
 
 ## Message protocol
 

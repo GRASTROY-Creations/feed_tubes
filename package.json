@@ -7,7 +7,7 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "build:ext": "bun run scripts/build.ts",
-    "lint": "bun run typecheck && bun run lint:ts && bun run format:check && bun run lint:webext",
+    "lint": "bun run version:check && bun run typecheck && bun run lint:ts && bun run format:check && bun run lint:webext",
     "lint:webext": "bun run build:ext && web-ext lint",
     "lint:ts": "eslint .",
     "format": "prettier --write .",
@@ -16,7 +16,12 @@
     "dev": "bun run scripts/dev.ts",
     "start": "bun run dev",
     "start:librewolf": "bun run scripts/run-librewolf.ts",
-    "build": "bun run build:ext && web-ext build"
+    "build": "bun run build:ext && web-ext build",
+    "bump": "bun run scripts/version.ts",
+    "bump:patch": "bun run scripts/version.ts patch",
+    "bump:minor": "bun run scripts/version.ts minor",
+    "bump:major": "bun run scripts/version.ts major",
+    "version:check": "bun run scripts/version.ts check"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

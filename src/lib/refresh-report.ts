@@ -1,18 +1,24 @@
-import { REFRESH_COOLDOWN_MS, type RefreshSummary } from "./refresh.js";
+import type { RefreshSummary } from "./refresh.js";
 import { pluralize } from "./text.js";
 
 const MINUTE_MS = 60 * 1000;
-const COOLDOWN_MINUTES = REFRESH_COOLDOWN_MS / MINUTE_MS;
+const MINUTES_PER_HOUR = 60;
 
 export interface RefreshReport {
   message: string;
   error: boolean;
 }
 
-/** Whole minutes until `nextRefreshAt`, at least 1. */
-function minutesUntil(nextRefreshAt: string | null, now: Date): number {
+/**
+ * Time until `nextRefreshAt`, rounded up: `"3 min"` below an hour, `"23 h"` above.
+ * Most sources cool down for minutes; some platforms (Pixabay) for a day.
+ */
+export function formatWait(nextRefreshAt: string | null, now: Date): string {
   const remaining = (Date.parse(nextRefreshAt ?? "") || now.getTime()) - now.getTime();
-  return Math.max(1, Math.ceil(remaining / MINUTE_MS));
+  const minutes = Math.max(1, Math.ceil(remaining / MINUTE_MS));
+  return minutes < MINUTES_PER_HOUR
+    ? `${minutes} min`
+    : `${Math.ceil(minutes / MINUTES_PER_HOUR)} h`;
 }
 
 /** User-facing summary of a manual refresh, including sources skipped by the cooldown. */
@@ -25,13 +31,10 @@ export function describeRefresh(
     return { message: "Add an enabled subscription before refreshing.", error: false };
   }
 
-  const wait = `next refresh in ${minutesUntil(nextRefreshAt, now)} min`;
+  const wait = `next refresh in ${formatWait(nextRefreshAt, now)}`;
   const fetched = total - throttled;
   if (fetched === 0) {
-    return {
-      message: `All sources were refreshed less than ${COOLDOWN_MINUTES} minutes ago; ${wait}.`,
-      error: false,
-    };
+    return { message: `All sources were refreshed recently; ${wait}.`, error: false };
   }
 
   const parts = [`Refreshed ${pluralize(fetched, "source")}`];

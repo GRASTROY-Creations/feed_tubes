@@ -125,8 +125,23 @@ select {
 
 .panel {
   display: flex;
+  flex: 1 0 auto;
   flex-direction: column;
   gap: var(--ytf-space);
+}
+
+/* Bottom of the Settings tab: pushed down when the sections are short, and stuck to the
+   bottom of the sidebar while scrolling through long ones, so it is always visible. */
+.settings-footer {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding: var(--ytf-space-tight) 0;
+  background: var(--ytf-bg);
+  border-top: 1px solid var(--ytf-border);
+  color: var(--ytf-muted);
+  font-size: 0.75rem;
+  text-align: center;
 }
 
 .feed-toolbar {

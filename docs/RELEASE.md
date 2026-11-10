@@ -63,7 +63,7 @@ export WEB_EXT_API_SECRET="<secret>"
 
 ## Release checklist (all signed builds)
 
-1. **Bump the version.** Set the same new version in `src/manifest.json` and `package.json`. AMO rejects a version number it has already signed, so every upload needs a higher number, even private ones.
+1. **Bump the version** with `bun run bump:patch`. Use `bump:minor` or `bump:major` for bigger steps, or `bun run bump 1.4.0` for an exact number. It updates `package.json` and `src/manifest.json` together; add `--dry-run` to preview. AMO rejects a version number it has already signed, so every upload needs a higher number, even private ones.
 2. **Check everything:**
 
    ```bash
@@ -172,11 +172,11 @@ bun run build
 This produces `dist/feedtubes-<version>.zip`. Rename it to `.xpi` so the browser's file picker shows it, or pick it with "All files":
 
 ```powershell
-Copy-Item dist\feedtubes-0.2.0.zip dist\feedtubes-0.2.0.xpi
+Copy-Item dist\feedtubes-<version>.zip dist\feedtubes-<version>.xpi
 ```
 
 ```bash
-cp dist/feedtubes-0.2.0.zip dist/feedtubes-0.2.0.xpi
+cp dist/feedtubes-<version>.zip dist/feedtubes-<version>.xpi
 ```
 
 `bun run build` uses the extension ID from `src/manifest.json`. A permanent install needs that ID. Use the [same ID](#1-choose-a-permanent-extension-id) you would sign with, so you can later switch to a signed build without losing data.
@@ -220,5 +220,5 @@ To remove it, open `about:addons`, then FeedTubes → **Remove**.
 | "This add-on could not be installed because it appears to be corrupt." | Usually unsigned in a browser that requires signing. Sign it as [unlisted](#private-signed-build-unlisted), or use an edition that allows unsigned add-ons. |
 | "…could not be verified for use in Firefox"                            | Same cause: a signature is required.                                                                                                                        |
 | "…not compatible with Firefox"                                         | The browser is older than `strict_min_version` (159.0).                                                                                                     |
-| AMO: "Version already exists"                                          | Bump `version` in `src/manifest.json` and `package.json`, then rebuild.                                                                                     |
+| AMO: "Version already exists"                                          | Run `bun run bump:patch`, then rebuild.                                                                                                                     |
 | AMO: "Duplicate add-on ID found"                                       | Someone else already uses that ID. Pick another one before the first upload.                                                                                |

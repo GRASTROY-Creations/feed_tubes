@@ -6,6 +6,8 @@ export type PlatformId =
   | "odysee"
   | "rutube"
   | "dailymotion"
+  | "dtube"
+  | "pixabay"
   | "vkvideo"
   | "bilibili"
   | "rumble"
@@ -84,11 +86,17 @@ export interface UiSettings {
   channelFilter: string;
 }
 
+/** Personal API keys for platforms that require one. Stored locally, never exported. */
+export interface ApiKeys {
+  pixabay: string;
+}
+
 export interface Settings {
   instances: Instance[];
   refresh: RefreshSettings;
   feed: FeedSettings;
   ui: UiSettings;
+  apiKeys: ApiKeys;
 }
 
 export interface RefreshState {
@@ -122,6 +130,7 @@ export interface AdapterContext {
   postJson: PostJson;
   timeoutMs: number;
   itemsPerSource: number;
+  apiKeys: Readonly<ApiKeys>;
 }
 
 export interface PlatformAdapter {

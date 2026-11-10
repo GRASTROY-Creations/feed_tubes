@@ -4,6 +4,7 @@ import { defaultSettings } from "./storage.js";
 import { subscriptionKey } from "./subscriptions.js";
 import { byPublishedDesc } from "./time.js";
 import type {
+  ApiKeys,
   CacheEntry,
   FeedCache,
   FeedItem,
@@ -23,12 +24,15 @@ export interface RefreshDependencies {
 
 export interface RefreshFeedsOptions extends RefreshDependencies {
   subscriptions: readonly Subscription[];
-  settings?: { feed?: Partial<FeedSettings> };
+  settings?: { feed?: Partial<FeedSettings>; apiKeys?: Partial<ApiKeys> };
   previousCache?: Readonly<Record<string, Partial<CacheEntry> | undefined>>;
   now?: Date;
 }
 
-/** A subscription is fetched at most once per this interval, whatever triggers the refresh. */
+/**
+ * A subscription is fetched at most once per this interval, whatever triggers the refresh.
+ * Platforms may ask for longer (`refreshCooldownMs` in the registry) after a successful fetch.
+ */
 export const REFRESH_COOLDOWN_MS = 5 * 60 * 1000;
 
 export interface RefreshSummary {
@@ -72,7 +76,8 @@ async function runPool<T, R>(
 async function fetchSubscriptionItems(
   subscription: Subscription,
   dependencies: RefreshDependencies,
-  feed: FeedSettings
+  feed: FeedSettings,
+  apiKeys: Readonly<ApiKeys>
 ): Promise<FeedItem[]> {
   const items = await getPlatform(subscription.platform).adapter.fetchItems(subscription, {
     fetchText: dependencies.fetchText,
@@ -80,6 +85,7 @@ async function fetchSubscriptionItems(
     postJson: dependencies.postJson,
     timeoutMs: feed.timeoutMs,
     itemsPerSource: feed.itemsPerSource,
+    apiKeys,
   });
   return items.toSorted(byPublishedDesc).slice(0, feed.itemsPerSource);
 }
@@ -96,11 +102,20 @@ interface Outcome {
  * Entries that only failed for missing host access never block: the user may have just
  * granted it and expects the source to load right away.
  */
-function cooldownUntil(previous: Partial<CacheEntry> | undefined, now: number): number | null {
+function cooldownUntil(
+  subscription: Subscription,
+  previous: Partial<CacheEntry> | undefined,
+  now: number
+): number | null {
   if (!previous?.fetchedAt || previous.errorCode === "permission-required") {
     return null;
   }
-  const until = Date.parse(previous.fetchedAt) + REFRESH_COOLDOWN_MS;
+  // A platform's longer cooldown only follows a success, so fixing a failure (e.g. adding a
+  // missing API key) takes effect within the normal cooldown.
+  const cooldown = previous.error
+    ? REFRESH_COOLDOWN_MS
+    : (getPlatform(subscription.platform).refreshCooldownMs ?? REFRESH_COOLDOWN_MS);
+  const until = Date.parse(previous.fetchedAt) + cooldown;
   return Number.isFinite(until) && until > now ? until : null;
 }
 
@@ -128,6 +143,7 @@ export async function refreshFeeds({
   ...dependencies
 }: RefreshFeedsOptions): Promise<RefreshResult> {
   const feed: FeedSettings = { ...defaultSettings().feed, ...settings?.feed };
+  const apiKeys: ApiKeys = { ...defaultSettings().apiKeys, ...settings?.apiKeys };
   const enabled = subscriptions.filter((subscription) => subscription.enabled);
   const fetchedAt = now.toISOString();
 
@@ -138,7 +154,7 @@ export async function refreshFeeds({
       const key = subscriptionKey(subscription);
       const previous = previousCache[key];
 
-      const throttledUntil = cooldownUntil(previous, now.getTime());
+      const throttledUntil = cooldownUntil(subscription, previous, now.getTime());
       if (previous && throttledUntil !== null) {
         return { key, entry: keptEntry(previous), throttledUntil };
       }
@@ -152,7 +168,7 @@ export async function refreshFeeds({
         if (!(await dependencies.checkPermission(subscription))) {
           return failed("Host permission is required for this source.", "permission-required");
         }
-        const items = await fetchSubscriptionItems(subscription, dependencies, feed);
+        const items = await fetchSubscriptionItems(subscription, dependencies, feed, apiKeys);
         return { key, entry: { fetchedAt, items, error: "", errorCode: "" } };
       } catch (error) {
         return failed(errorMessage(error, "Could not refresh this source."), "fetch-failed");

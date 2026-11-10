@@ -1,6 +1,7 @@
 import type { AppContext, View } from "../app-context.js";
 import { initDataSection } from "./settings/data-section.js";
 import { initInstancesSection } from "./settings/instances-section.js";
+import { initApiKeysSection } from "./settings/api-keys-section.js";
 import { initRefreshSection } from "./settings/refresh-section.js";
 import type { SettingsSection } from "./settings/shared.js";
 import { initSubscriptionsSection } from "./settings/subscriptions-section.js";
@@ -12,6 +13,7 @@ export function initSettingsView(app: AppContext): View {
     initInstancesSection(app),
     initSubscriptionsSection(app),
     initRefreshSection(app),
+    initApiKeysSection(app),
     initTransferSection(app),
   ];
 

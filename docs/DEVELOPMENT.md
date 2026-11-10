@@ -39,6 +39,8 @@ bun run dev             # build, then tsc --watch + asset watcher + web-ext run 
 bun run start           # alias for dev
 bun run start:librewolf # dev loop in LibreWolf with the project-local debug override
 bun run build           # build:ext, then package build/ into dist/
+bun run bump:patch      # bump the version (also bump:minor, bump:major, bump <x.y.z>)
+bun run version:check   # fail if package.json and src/manifest.json disagree
 ```
 
 Run a single tool directly with Bun:
