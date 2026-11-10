@@ -16,7 +16,7 @@
     "default_icon": "icons/icon.svg",
     "open_at_install": true
   },
-  "permissions": ["storage", "alarms"],
+  "permissions": ["storage", "alarms", "identity"],
   "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
   "background": {
     "scripts": ["background/background.js"],

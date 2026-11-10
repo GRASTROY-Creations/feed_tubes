@@ -2,10 +2,12 @@ import type { InstanceKind, PlatformAdapter, PlatformId, PlatformKind } from "..
 import { DAILYMOTION_ORIGIN, dailymotionAdapter } from "./dailymotion.js";
 import { DTUBE_API, DTUBE_ORIGIN, dtubeAdapter } from "./dtube.js";
 import { genericRssAdapter } from "./generic-rss.js";
+import { GOODGAME_ORIGIN, goodgameAdapter } from "./goodgame.js";
 import { ODYSEE_ORIGIN, odyseeAdapter } from "./odysee.js";
 import { peertubeAdapter } from "./peertube.js";
 import { PIXABAY_CACHE_MS, PIXABAY_ORIGIN, pixabayAdapter } from "./pixabay.js";
 import { RUTUBE_ORIGIN, rutubeAdapter } from "./rutube.js";
+import { TWITCH_ORIGIN, twitchAdapter } from "./twitch.js";
 import { YOUTUBE_ORIGIN } from "./youtube-urls.js";
 import { youtubeAdapter } from "./youtube.js";
 
@@ -25,6 +27,8 @@ export interface PlatformDefinition {
   readonly placeholder: string;
   /** Minimum time between successful fetches, when the platform asks for more than the default. */
   readonly refreshCooldownMs?: number;
+  /** An RSS bridge feed URL may be given instead of the platform's own API (optional). */
+  readonly allowsFeedUrl?: boolean;
 }
 
 function nativePlatform(
@@ -96,6 +100,18 @@ export const PLATFORMS = {
     // Pixabay's API terms ask for results to be cached for 24 hours.
     refreshCooldownMs: PIXABAY_CACHE_MS,
   },
+  twitch: {
+    ...nativePlatform("Twitch", TWITCH_ORIGIN, twitchAdapter, "Channel name or twitch.tv/… URL"),
+    // Helix API host; a subscription with a bridge feed URL uses the feed's host instead.
+    permissionOrigin: "https://api.twitch.tv/*",
+    allowsFeedUrl: true,
+  },
+  goodgame: nativePlatform(
+    "GoodGame",
+    GOODGAME_ORIGIN,
+    goodgameAdapter,
+    "Channel name or goodgame.ru/… URL"
+  ),
   vkvideo: feedPlatform("VK Video", "bridge", "vk", "Optional channel ID"),
   bilibili: feedPlatform("Bilibili", "bridge", "bilibili", "Optional UID"),
   rumble: feedPlatform("Rumble", "bridge", "rumble", "Optional channel slug"),

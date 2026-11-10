@@ -67,6 +67,24 @@
       "enabled": true
     },
     {
+      "platform": "twitch",
+      "instanceUrl": "https://www.twitch.tv",
+      "channelId": "twitch",
+      "channelName": "Twitch",
+      "channelUrl": "https://www.twitch.tv/twitch",
+      "feedUrl": "",
+      "enabled": true
+    },
+    {
+      "platform": "goodgame",
+      "instanceUrl": "https://goodgame.ru",
+      "channelId": "Miker",
+      "channelName": "Miker",
+      "channelUrl": "https://goodgame.ru/Miker",
+      "feedUrl": "",
+      "enabled": true
+    },
+    {
       "platform": "vkvideo",
       "instanceUrl": "https://rsshub.app",
       "channelId": "vk",

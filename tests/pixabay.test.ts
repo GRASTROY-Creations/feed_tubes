@@ -9,7 +9,7 @@ import { refreshFeeds } from "../src/lib/refresh.js";
 import { formatWait } from "../src/lib/refresh-report.js";
 import { subscriptionKey } from "../src/lib/subscriptions.js";
 import type { AdapterContext } from "../src/lib/types.js";
-import { at, rejectionOf, subscriptionOf } from "./fixtures.js";
+import { apiKeys, at, rejectionOf, subscriptionOf } from "./fixtures.js";
 
 const KEY = "12345678-abcdefabcdefabcdefabcdef0";
 
@@ -43,7 +43,7 @@ function fakeApi(hits: unknown[], apiKey = KEY): { context: AdapterContext; requ
       postJson: () => Promise.reject(new Error("unused")),
       timeoutMs: 1000,
       itemsPerSource: 5,
-      apiKeys: { pixabay: apiKey },
+      apiKeys: apiKeys({ pixabay: apiKey }),
     },
   };
 }

@@ -23,7 +23,8 @@ src/
     platforms/
       registry.ts               one PlatformDefinition per platform
       youtube.ts, peertube.ts, rutube.ts, odysee.ts, dailymotion.ts, dtube.ts, pixabay.ts,
-      generic-rss.ts
+      twitch.ts, goodgame.ts, generic-rss.ts
+    twitch-auth.ts              "Sign in with Twitch" (OAuth implicit grant)
   sidebar/
     sidebar.html, sidebar.css
     sidebar.ts                  App controller (implements AppContext)
@@ -75,6 +76,29 @@ Pixabay subscriptions follow one contributor through the official video API (`pi
 - **Dates:** results have no upload time, only the upload day in the CDN path, so dates are day-precise.
 - **24-hour cooldown:** Pixabay asks API users to cache results for a day. The registry entry sets `refreshCooldownMs` to 24 hours, applied only after a successful fetch, so a failed fetch (for example, a missing key) retries on the normal cooldown.
 
+### Twitch
+
+A Twitch subscription is read in one of two ways:
+
+- **RSS bridge:** when the subscription has a feed URL, e.g. an RSSHub `/twitch/video/<login>` route, it is read like any feed. No Twitch account is needed, and host permission is requested for the bridge.
+- **Official Helix API:** otherwise. It requests `users?login=`, then `videos?user_id=` (exact dates) and `streams?user_login=` in parallel; a live stream appears as an extra "LIVE: …" card at the top.
+
+Helix needs a Client ID and a user token:
+
+- **Client ID:** every user registers a free application at dev.twitch.tv (category "Website Integration") and enters its Client ID under Settings → General → API Keys. Settings shows the redirect URL to register, which comes from `browser.identity.getRedirectURL()` and depends on the extension ID.
+- **Token:** "Sign in with Twitch" (`twitch-auth.ts`) uses the OAuth implicit grant through `browser.identity.launchWebAuthFlow`. It needs no client secret and requests no scopes, and it checks the `state` value against forged redirects. The token is validated with `id.twitch.tv/oauth2/validate`, stored in `settings.apiKeys`, and revoked on sign-out.
+- **Expiry:** an expired token shows "sign in again", and changing the Client ID signs the user out.
+- **What's not used:** Twitch's internal GraphQL API with the twitch.tv website's own client ID. That would impersonate Twitch's app and breaks Twitch's terms.
+
+### goodgame.ru
+
+goodgame.ru has no public list of past videos, so a subscription shows **one status card** per channel, from `goodgame.ru/api/4/users/<channel>/stream`:
+
+- **Live:** "LIVE: <title> (<game>)" with the stream preview.
+- **Offline:** "Last stream: <title> (<game>)" with the channel poster, dated when the channel was last online.
+- **One card per channel:** the card's id is the channel name, so each refresh updates it instead of adding a new one.
+- **Unknown channels:** the API answers 404, which is shown as "no channel named …".
+
 ## Message protocol
 
 Defined in `lib/messages.ts`:
@@ -105,7 +129,7 @@ Adding a YouTube `@handle` resolves it to a `UC…` channel id when the subscrip
 
 ## Permissions
 
-- `storage` and `alarms` are required.
+- `storage`, `alarms`, and `identity` are required. `identity` is used only for "Sign in with Twitch".
 - Hosts are `optional_host_permissions`, requested per subscription origin:
   - when the user grants access from the feed
   - when testing an instance

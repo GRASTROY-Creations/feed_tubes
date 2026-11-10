@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { dtubeAdapter, dtubeShortId, dtubeWatchUrl } from "../src/lib/platforms/dtube.js";
 import { normalizeSubscription } from "../src/lib/subscriptions.js";
 import type { AdapterContext } from "../src/lib/types.js";
-import { at, rejectionOf, subscriptionOf } from "./fixtures.js";
+import { apiKeys, at, rejectionOf, subscriptionOf } from "./fixtures.js";
 
 const CHANNEL_UUID = "0d0169f9-bd3f-44c7-9c3b-d0ebd7d99e58";
 const VIDEO_UUID = "fbd5a9c6-fe08-4308-81a6-d6d8951fe7fb";
@@ -37,7 +37,7 @@ function fakeApi(channel: unknown = { id: CHANNEL_UUID, username: "styles" }): {
       postJson: () => Promise.reject(new Error("unused")),
       timeoutMs: 1000,
       itemsPerSource: 5,
-      apiKeys: { pixabay: "" },
+      apiKeys: apiKeys(),
     },
   };
 }

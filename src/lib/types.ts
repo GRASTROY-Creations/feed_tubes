@@ -8,6 +8,8 @@ export type PlatformId =
   | "dailymotion"
   | "dtube"
   | "pixabay"
+  | "twitch"
+  | "goodgame"
   | "vkvideo"
   | "bilibili"
   | "rumble"
@@ -89,6 +91,12 @@ export interface UiSettings {
 /** Personal API keys for platforms that require one. Stored locally, never exported. */
 export interface ApiKeys {
   pixabay: string;
+  /** Client ID of a Twitch application registered at dev.twitch.tv. */
+  twitchClientId: string;
+  /** User access token from "Sign in with Twitch"; empty when signed out. */
+  twitchToken: string;
+  /** Twitch login the token belongs to, shown in Settings. */
+  twitchLogin: string;
 }
 
 export interface Settings {
@@ -118,6 +126,8 @@ export interface FetchOptions {
   retries?: number;
   signal?: AbortSignal;
   accept?: string;
+  /** Extra request headers, e.g. an API's `Authorization`. Never included in error messages. */
+  headers?: Readonly<Record<string, string>>;
 }
 
 export type FetchText = (url: string, options?: FetchOptions) => Promise<string>;

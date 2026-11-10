@@ -41,6 +41,7 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     name: getElement("subscription-name", HTMLInputElement),
     feedRow: getElement("subscription-feed-row", HTMLLabelElement),
     feedUrl: getElement("subscription-feed-url", HTMLInputElement),
+    feedRowLabel: getElement("subscription-feed-label", HTMLSpanElement),
     enabled: getElement("subscription-enabled", HTMLInputElement),
     cancel: getElement("subscription-cancel", HTMLButtonElement),
     error: getElement("subscription-error", HTMLParagraphElement),
@@ -99,8 +100,11 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
   function updateForm(): void {
     const platform = selectedPlatform();
     const needsFeed = platform.requiresFeedUrl;
+    // Twitch: an RSS bridge feed URL may be used instead of signing in.
+    const offersFeed = needsFeed || Boolean(platform.allowsFeedUrl);
 
-    elements.feedRow.hidden = !needsFeed;
+    elements.feedRow.hidden = !offersFeed;
+    setText(elements.feedRowLabel, needsFeed ? "Feed URL" : "RSS bridge feed URL (optional)");
     elements.feedUrl.required = needsFeed;
     elements.channel.required = !needsFeed;
     elements.channel.disabled = needsFeed;
@@ -241,7 +245,7 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
       channelId: channelInput,
       channelUrl: parseHttpUrl(channelInput) ? channelInput : "",
       channelName,
-      feedUrl: needsFeed ? elements.feedUrl.value.trim() : "",
+      feedUrl: needsFeed || definition.allowsFeedUrl ? elements.feedUrl.value.trim() : "",
       enabled: elements.enabled.checked,
     };
 

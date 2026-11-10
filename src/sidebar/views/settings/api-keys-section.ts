@@ -1,31 +1,118 @@
-import { getElement } from "../../../lib/dom.js";
+import { getElement, setText } from "../../../lib/dom.js";
+import { errorMessage } from "../../../lib/errors.js";
+import { requestOrigins } from "../../../lib/permissions.js";
+import {
+  revokeTwitchToken,
+  signInWithTwitch,
+  TWITCH_AUTH_ORIGINS,
+} from "../../../lib/twitch-auth.js";
+import type { ApiKeys } from "../../../lib/types.js";
 import type { AppContext } from "../../app-context.js";
-import { showToast } from "../../components/toast.js";
-import type { SettingsSection } from "./shared.js";
+import { showError, showToast } from "../../components/toast.js";
+import { withDisabled, type SettingsSection } from "./shared.js";
 
-/** Personal API keys (currently only Pixabay), saved when the field loses focus. */
+/** Personal API keys and the Twitch sign-in. Text fields are saved when they lose focus. */
 export function initApiKeysSection(app: AppContext): SettingsSection {
-  const pixabay = getElement("pixabay-api-key", HTMLInputElement);
+  const elements = {
+    pixabay: getElement("pixabay-api-key", HTMLInputElement),
+    twitchClientId: getElement("twitch-client-id", HTMLInputElement),
+    twitchRedirect: getElement("twitch-redirect-url", HTMLInputElement),
+    twitchSignIn: getElement("twitch-sign-in", HTMLButtonElement),
+    twitchSignOut: getElement("twitch-sign-out", HTMLButtonElement),
+    twitchStatus: getElement("twitch-status", HTMLParagraphElement),
+  };
 
-  pixabay.addEventListener("change", () => {
-    const key = pixabay.value.trim();
+  const keys = (): ApiKeys => app.state.settings.apiKeys;
+
+  async function saveKeys(partial: Partial<ApiKeys>): Promise<void> {
     const { settings } = app.state;
-    if (key === settings.apiKeys.pixabay) {
+    await app.persistSettings({ ...settings, apiKeys: { ...settings.apiKeys, ...partial } });
+  }
+
+  function bindTextField(
+    input: HTMLInputElement,
+    field: "pixabay" | "twitchClientId",
+    label: string
+  ): void {
+    input.addEventListener("change", () => {
+      const value = input.value.trim();
+      if (value === keys()[field]) {
+        return;
+      }
+      // A new Client ID invalidates the old sign-in, which belonged to the previous app.
+      const partial: Partial<ApiKeys> =
+        field === "twitchClientId"
+          ? { twitchClientId: value, twitchToken: "", twitchLogin: "" }
+          : { [field]: value };
+      void saveKeys(partial).then(() => {
+        showToast(value ? `${label} saved.` : `${label} removed.`);
+      });
+    });
+  }
+
+  bindTextField(elements.pixabay, "pixabay", "Pixabay API key");
+  bindTextField(elements.twitchClientId, "twitchClientId", "Twitch Client ID");
+
+  elements.twitchRedirect.value = browser.identity.getRedirectURL();
+  elements.twitchRedirect.addEventListener("focus", () => {
+    elements.twitchRedirect.select();
+  });
+
+  elements.twitchSignIn.addEventListener("click", () => {
+    const clientId = elements.twitchClientId.value.trim() || keys().twitchClientId;
+    if (!clientId) {
+      showError("Enter your Twitch Client ID first.");
       return;
     }
-    void app
-      .persistSettings({ ...settings, apiKeys: { ...settings.apiKeys, pixabay: key } })
-      .then(() => {
-        showToast(key ? "Pixabay API key saved." : "Pixabay API key removed.");
-      });
+
+    // Request host access before any await, so it still counts as a user action.
+    const access = requestOrigins(TWITCH_AUTH_ORIGINS);
+    void withDisabled(elements.twitchSignIn, async () => {
+      try {
+        if (!(await access)) {
+          showError("Access to Twitch was not granted.");
+          return;
+        }
+        const session = await signInWithTwitch(clientId);
+        await saveKeys({
+          twitchClientId: clientId,
+          twitchToken: session.token,
+          twitchLogin: session.login,
+        });
+        showToast(`Signed in to Twitch as ${session.login}.`);
+      } catch (error) {
+        showError(errorMessage(error, "Twitch sign-in failed."));
+      }
+    });
+  });
+
+  elements.twitchSignOut.addEventListener("click", () => {
+    const { twitchClientId, twitchToken } = keys();
+    void withDisabled(elements.twitchSignOut, async () => {
+      await revokeTwitchToken(twitchClientId, twitchToken);
+      await saveKeys({ twitchToken: "", twitchLogin: "" });
+      showToast("Signed out of Twitch.");
+    });
   });
 
   return {
     render() {
+      const current = keys();
       // Never overwrite what the user is typing.
-      if (document.activeElement !== pixabay) {
-        pixabay.value = app.state.settings.apiKeys.pixabay;
+      if (document.activeElement !== elements.pixabay) {
+        elements.pixabay.value = current.pixabay;
       }
+      if (document.activeElement !== elements.twitchClientId) {
+        elements.twitchClientId.value = current.twitchClientId;
+      }
+
+      const signedIn = Boolean(current.twitchToken);
+      elements.twitchSignIn.hidden = signedIn;
+      elements.twitchSignOut.hidden = !signedIn;
+      setText(
+        elements.twitchStatus,
+        signedIn ? `Signed in as ${current.twitchLogin || "a Twitch user"}.` : "Not signed in."
+      );
     },
   };
 }

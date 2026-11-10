@@ -41,10 +41,15 @@ async function attempt(
   url: string,
   responseType: ResponseType,
   init: RequestInitParts,
-  { timeoutMs, signal, accept }: Required<Pick<FetchOptions, "timeoutMs" | "accept">> & FetchOptions
+  {
+    timeoutMs,
+    signal,
+    accept,
+    headers: extraHeaders,
+  }: Required<Pick<FetchOptions, "timeoutMs" | "accept">> & FetchOptions
 ): Promise<unknown> {
   const timeoutSignal = AbortSignal.timeout(timeoutMs);
-  const headers: Record<string, string> = { Accept: accept };
+  const headers: Record<string, string> = { ...extraHeaders, Accept: accept };
   if (init.contentType) {
     headers["Content-Type"] = init.contentType;
   }
@@ -77,11 +82,12 @@ async function request(
     retries = DEFAULT_RETRIES,
     accept = DEFAULT_ACCEPT,
     signal,
+    headers,
   } = options;
 
   for (let attemptIndex = 0; ; attemptIndex += 1) {
     try {
-      return await attempt(url, responseType, init, { timeoutMs, accept, signal });
+      return await attempt(url, responseType, init, { timeoutMs, accept, signal, headers });
     } catch (error) {
       if (attemptIndex >= retries || !shouldRetry(error, signal)) {
         // Name the URL, because the browser's own network error message does not.

@@ -155,6 +155,8 @@ A listed submission returns once it has been queued for review. The approved `.x
 
 - Describe what the add-on does with the network: it fetches feeds directly from the platforms and bridges the user configures, and it uses YouTube's internal web API as a fallback when the RSS feed fails.
 - Optional host permissions are requested per source at runtime.
+- The `identity` permission is used only for the optional "Sign in with Twitch", through Twitch's official OAuth. No Twitch credentials ship with the add-on: each user registers their own Twitch application.
+- **Before release:** replace the placeholder extension ID first. The Twitch redirect URL users register (shown in Settings → General) depends on that ID, and changes when the ID changes.
 - No data is collected (`data_collection_permissions: none`).
 - Add screenshots of the feed and settings tabs on the listing page.
 

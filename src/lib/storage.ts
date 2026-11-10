@@ -24,6 +24,9 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   }),
   apiKeys: Object.freeze({
     pixabay: "",
+    twitchClientId: "",
+    twitchToken: "",
+    twitchLogin: "",
   }),
 });
 

@@ -7,7 +7,7 @@ import {
 } from "../src/lib/platforms/youtube-urls.js";
 import { resolveYouTubeChannel, youtubeAdapter } from "../src/lib/platforms/youtube.js";
 import type { AdapterContext } from "../src/lib/types.js";
-import { at, rejectionOf, subscriptionOf } from "./fixtures.js";
+import { apiKeys, at, rejectionOf, subscriptionOf } from "./fixtures.js";
 
 const CHANNEL_ID = "UCb2e-ivDST748PmPJOn4DnA";
 const NOW = new Date("2026-11-06T12:00:00Z");
@@ -86,7 +86,7 @@ function fakeYouTube(routes: FakeYouTube): { context: AdapterContext; requested:
         route(url, url.includes("/navigation/resolve_url") ? routes.resolveUrl : browseResponse),
       timeoutMs: 1000,
       itemsPerSource: 10,
-      apiKeys: { pixabay: "" },
+      apiKeys: apiKeys(),
     },
   };
 }

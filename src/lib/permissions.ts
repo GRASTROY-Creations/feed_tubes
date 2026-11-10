@@ -4,7 +4,11 @@ import { originPattern } from "./url.js";
 
 /** Host match pattern a subscription needs before its feed can be fetched. */
 export function originForSubscription(subscription: Subscription): string {
-  const { permissionOrigin } = getPlatform(subscription.platform);
+  const { permissionOrigin, allowsFeedUrl } = getPlatform(subscription.platform);
+  // A subscription that reads an RSS bridge instead of the platform API needs the bridge host.
+  if (allowsFeedUrl && subscription.feedUrl) {
+    return originPattern(subscription.feedUrl);
+  }
   if (permissionOrigin) {
     return permissionOrigin;
   }

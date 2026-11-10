@@ -1,5 +1,11 @@
+import { defaultSettings } from "../src/lib/storage.js";
 import { normalizeSubscription } from "../src/lib/subscriptions.js";
-import type { FeedItem, RawSubscription, Subscription } from "../src/lib/types.js";
+import type { ApiKeys, FeedItem, RawSubscription, Subscription } from "../src/lib/types.js";
+
+/** API keys for adapter contexts: all empty unless overridden. */
+export function apiKeys(overrides: Partial<ApiKeys> = {}): ApiKeys {
+  return { ...defaultSettings().apiKeys, ...overrides };
+}
 
 /** Normalizes `raw` and fails the test if it is not a valid subscription. */
 export function subscriptionOf(raw: RawSubscription): Subscription {

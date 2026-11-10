@@ -2,7 +2,9 @@ import { getPlatform, isFeedOnlyPlatform, isPlatformId } from "./platforms/regis
 import { ODYSEE_ORIGIN, odyseeHandle } from "./platforms/odysee.js";
 import { DAILYMOTION_ORIGIN } from "./platforms/dailymotion.js";
 import { dtubeChannelUrl } from "./platforms/dtube.js";
+import { goodgameChannelUrl } from "./platforms/goodgame.js";
 import { pixabayProfileUrl } from "./platforms/pixabay.js";
+import { twitchChannelUrl } from "./platforms/twitch.js";
 import { RUTUBE_ORIGIN } from "./platforms/rutube.js";
 import { toYouTubeHandle, youtubeChannelOrHandleUrl } from "./platforms/youtube-urls.js";
 import type { PlatformId, RawSubscription, Subscription } from "./types.js";
@@ -218,6 +220,47 @@ function normalizePixabay(input: SubscriptionInput): DerivedFields {
   return { channelId, channelUrl: channelId ? pixabayProfileUrl(channelId) : "" };
 }
 
+/** twitch.tv paths that are pages, not channels. */
+const TWITCH_RESERVED_PATHS = new Set([
+  "videos",
+  "directory",
+  "search",
+  "settings",
+  "downloads",
+  "p",
+]);
+
+/**
+ * Accepts `name`, `@name`, or a `twitch.tv/<name>[/videos]` URL; stores the lowercase login.
+ * An optional RSS bridge feed URL is kept as given.
+ */
+function normalizeTwitch(input: SubscriptionInput): DerivedFields {
+  let channelId = input.channelId.replace(/^@/, "");
+
+  const url = urlFromInput(input);
+  if (url && /(^|\.)twitch\.tv$/i.test(url.hostname)) {
+    const segment = url.pathname.split("/").find(Boolean) ?? "";
+    channelId = TWITCH_RESERVED_PATHS.has(segment.toLowerCase()) ? "" : decodeURIComponent(segment);
+  }
+
+  channelId = channelId.toLowerCase();
+  return { channelId, channelUrl: channelId ? twitchChannelUrl(channelId) : "" };
+}
+
+/** Accepts `name`, a `goodgame.ru/<name>` or older `goodgame.ru/channel/<name>` URL. */
+function normalizeGoodgame(input: SubscriptionInput): DerivedFields {
+  let { channelId } = input;
+
+  const url = urlFromInput(input);
+  if (url && /(^|\.)goodgame\.ru$/i.test(url.hostname)) {
+    const segments = url.pathname.split("/").filter(Boolean);
+    const name = segments[0]?.toLowerCase() === "channel" ? segments[1] : segments[0];
+    channelId = name ? decodeURIComponent(name) : "";
+  }
+
+  return { channelId, channelUrl: channelId ? goodgameChannelUrl(channelId) : "" };
+}
+
 function normalizeFeed(input: SubscriptionInput): DerivedFields {
   const channelUrl = normalizeUrl(input.channelUrl);
   let feedUrl = normalizeUrl(input.feedUrl);
@@ -241,6 +284,8 @@ const NORMALIZERS: Record<PlatformId, (input: SubscriptionInput) => DerivedField
   dailymotion: normalizeDailymotion,
   dtube: normalizeDtube,
   pixabay: normalizePixabay,
+  twitch: normalizeTwitch,
+  goodgame: normalizeGoodgame,
   vkvideo: normalizeFeed,
   bilibili: normalizeFeed,
   rumble: normalizeFeed,
