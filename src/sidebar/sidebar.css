@@ -513,6 +513,20 @@ select {
   gap: 6px;
 }
 
+/* Long lists scroll inside a box instead of stretching the whole settings page. */
+.list--scroll {
+  max-height: 18rem;
+  padding: var(--ytf-space-tight);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--ytf-border);
+  border-radius: var(--ytf-radius-small);
+}
+
+.list--scroll:empty {
+  display: none;
+}
+
 .list-item {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -570,6 +584,10 @@ select {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.form-actions--end {
+  justify-content: flex-end;
 }
 
 .checkbox {

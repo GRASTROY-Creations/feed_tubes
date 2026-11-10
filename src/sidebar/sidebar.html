@@ -121,34 +121,9 @@
           </div>
         </details>
 
-        <details class="settings-section">
+        <details id="settings-subscriptions" class="settings-section">
           <summary class="settings-section__title">Subscriptions</summary>
           <div class="settings-section__body">
-            <div class="toolbar">
-              <label class="field field--inline">
-                <span>Search</span>
-                <input id="subscription-search" type="search" placeholder="Channel name" />
-              </label>
-              <label class="field field--inline">
-                <span>Platform</span>
-                <select id="subscription-filter">
-                  <option value="all">All platforms</option>
-                </select>
-              </label>
-            </div>
-            <div class="toolbar">
-              <button id="enable-all" class="button button--compact" type="button">
-                Enable all
-              </button>
-              <button id="disable-all" class="button button--compact" type="button">
-                Disable all
-              </button>
-              <button id="delete-disabled" class="button button--compact" type="button">
-                Delete disabled
-              </button>
-            </div>
-            <div id="subscription-list" class="list"></div>
-
             <form id="subscription-form" class="form">
               <label class="field">
                 <span>Platform</span>
@@ -168,8 +143,13 @@
                 />
               </label>
               <label class="field">
-                <span>Display name (optional)</span>
-                <input id="subscription-name" type="text" maxlength="300" />
+                <span>Alias</span>
+                <input
+                  id="subscription-alias"
+                  type="text"
+                  maxlength="300"
+                  placeholder="Optional, shown instead of the channel name"
+                />
               </label>
               <label id="subscription-feed-row" class="field" hidden>
                 <span id="subscription-feed-label">Feed URL</span>
@@ -180,18 +160,39 @@
                   placeholder="https://example.com/feed.xml"
                 />
               </label>
-              <label class="checkbox">
-                <input id="subscription-enabled" type="checkbox" checked />
-                <span>Enabled</span>
-              </label>
-              <div class="form-actions">
-                <button class="button button--primary" type="submit">Add subscription</button>
+              <div class="form-actions form-actions--end">
                 <button id="subscription-cancel" class="button button--quiet" type="button" hidden>
                   Cancel
                 </button>
+                <button class="button button--primary" type="submit">Add</button>
               </div>
               <p id="subscription-error" class="banner banner--error" role="alert" hidden></p>
             </form>
+
+            <div class="toolbar">
+              <button id="enable-all" class="button button--compact" type="button">
+                Enable all
+              </button>
+              <button id="disable-all" class="button button--compact" type="button">
+                Disable all
+              </button>
+              <button id="delete-disabled" class="button button--compact" type="button">
+                Delete disabled
+              </button>
+            </div>
+            <div class="toolbar">
+              <label class="field field--inline">
+                <span>Search</span>
+                <input id="subscription-search" type="search" placeholder="Channel name" />
+              </label>
+              <label class="field field--inline">
+                <span>Platform</span>
+                <select id="subscription-filter">
+                  <option value="all">All platforms</option>
+                </select>
+              </label>
+            </div>
+            <div id="subscription-list" class="list list--scroll"></div>
           </div>
         </details>
 

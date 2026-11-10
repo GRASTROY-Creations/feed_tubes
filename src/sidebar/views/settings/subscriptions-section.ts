@@ -27,22 +27,24 @@ import {
 } from "./shared.js";
 
 const DEFAULT_PLATFORM = "youtube";
+/** Entries visible in the subscription list before it scrolls; the half row hints at more. */
+const VISIBLE_ROWS = 5.5;
 
 export function initSubscriptionsSection(app: AppContext): SettingsSection {
   const elements = {
     search: getElement("subscription-search", HTMLInputElement),
     filter: getElement("subscription-filter", HTMLSelectElement),
     list: getElement("subscription-list", HTMLDivElement),
+    section: getElement("settings-subscriptions", HTMLDetailsElement),
     form: getElement("subscription-form", HTMLFormElement),
     platform: getElement("subscription-platform", HTMLSelectElement),
     instanceRow: getElement("subscription-instance-row", HTMLLabelElement),
     instance: getElement("subscription-instance", HTMLSelectElement),
     channel: getElement("subscription-channel", HTMLInputElement),
-    name: getElement("subscription-name", HTMLInputElement),
+    alias: getElement("subscription-alias", HTMLInputElement),
     feedRow: getElement("subscription-feed-row", HTMLLabelElement),
     feedUrl: getElement("subscription-feed-url", HTMLInputElement),
     feedRowLabel: getElement("subscription-feed-label", HTMLSpanElement),
-    enabled: getElement("subscription-enabled", HTMLInputElement),
     cancel: getElement("subscription-cancel", HTMLButtonElement),
     error: getElement("subscription-error", HTMLParagraphElement),
     enableAll: getElement("enable-all", HTMLButtonElement),
@@ -54,6 +56,11 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
   let editingKey: string | null = null;
 
   const subscriptions = (): Subscription[] => app.state.subscriptions;
+  /** The subscription loaded into the form by "Edit", if any. */
+  const editedSubscription = (): Subscription | undefined =>
+    editingKey === null
+      ? undefined
+      : subscriptions().find((subscription) => subscriptionKey(subscription) === editingKey);
   const selectedPlatform = () => getPlatform(elements.platform.value || DEFAULT_PLATFORM);
 
   // --- Instance picker -------------------------------------------------------
@@ -127,10 +134,9 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     updateForm();
     elements.instance.value = subscription.instanceUrl || elements.instance.value;
     elements.channel.value = subscription.channelId || subscription.channelUrl;
-    elements.name.value = subscription.channelName;
+    elements.alias.value = subscription.channelName;
     elements.feedUrl.value = subscription.feedUrl;
-    elements.enabled.checked = subscription.enabled;
-    setText(submit, "Save subscription");
+    setText(submit, "Save");
     elements.cancel.hidden = false;
     setMessage(elements.error, "");
     elements.form.scrollIntoView({ block: "nearest" });
@@ -207,6 +213,28 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     }
 
     elements.list.replaceChildren(...values.map(subscriptionRow));
+    fitListToRows();
+  }
+
+  /**
+   * Caps the scrollable list at `VISIBLE_ROWS` entries. Rows all have the same layout, so one
+   * measured row gives the height; a closed section has no layout, so this reruns on open.
+   */
+  function fitListToRows(): void {
+    const firstRow = elements.list.firstElementChild;
+    if (!(firstRow instanceof HTMLElement) || firstRow.offsetHeight === 0) {
+      return;
+    }
+    const style = getComputedStyle(elements.list);
+    const gap = parseFloat(style.rowGap) || 0;
+    const frame =
+      parseFloat(style.paddingTop) +
+      parseFloat(style.paddingBottom) +
+      parseFloat(style.borderTopWidth) +
+      parseFloat(style.borderBottomWidth);
+    const gaps = Math.ceil(VISIBLE_ROWS) - 1;
+    const height = VISIBLE_ROWS * firstRow.offsetHeight + gaps * gap + frame;
+    elements.list.style.maxHeight = `${Math.ceil(height)}px`;
   }
 
   function render(): void {
@@ -218,8 +246,7 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     editingKey = null;
     elements.form.reset();
     elements.platform.value = DEFAULT_PLATFORM;
-    elements.enabled.checked = true;
-    setText(submit, "Add subscription");
+    setText(submit, "Add");
     elements.cancel.hidden = true;
     setMessage(elements.error, "");
     updateForm();
@@ -237,7 +264,9 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     const definition = getPlatform(platform);
     const needsFeed = definition.requiresFeedUrl;
     const channelInput = needsFeed ? "" : elements.channel.value.trim();
-    const channelName = elements.name.value.trim();
+    // The alias is stored as the channel name. When empty, the name looked up for a YouTube
+    // handle is used, otherwise the channel id (see normalizeSubscription).
+    const channelName = elements.alias.value.trim();
 
     const raw = {
       platform,
@@ -246,7 +275,8 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
       channelUrl: parseHttpUrl(channelInput) ? channelInput : "",
       channelName,
       feedUrl: needsFeed || definition.allowsFeedUrl ? elements.feedUrl.value.trim() : "",
-      enabled: elements.enabled.checked,
+      // New subscriptions start enabled; editing keeps the state set in the list.
+      enabled: editedSubscription()?.enabled ?? true,
     };
 
     if (platform !== "youtube" || !needsYouTubeLookup(channelInput)) {
@@ -353,6 +383,7 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     );
   });
 
+  elements.section.addEventListener("toggle", fitListToRows);
   elements.search.addEventListener("input", renderList);
   elements.filter.addEventListener("change", renderList);
   elements.platform.addEventListener("change", updateForm);
