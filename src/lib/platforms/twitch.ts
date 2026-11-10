@@ -4,7 +4,7 @@
  * 1. **RSS bridge** — when the subscription has a feed URL (e.g. an RSSHub `/twitch/video/<login>`
  *    route), it is read like any RSS feed. No Twitch account needed.
  * 2. **Official Helix API** — otherwise. Needs the Client ID of a Twitch application and a user
- *    token from "Sign in with Twitch" (Settings → General); see `twitch-auth.ts`.
+ *    token from "Sign in with Twitch" (Settings → Instances); see `twitch-auth.ts`.
  *      GET /helix/users?login=<login>                 → channel id and display name
  *      GET /helix/videos?user_id=<id>&first=N         → past broadcasts, highlights, uploads
  *      GET /helix/streams?user_login=<login>          → the live stream, if any
@@ -44,7 +44,7 @@ function helixHeaders(context: AdapterContext): Record<string, string> {
   const { twitchClientId, twitchToken } = context.apiKeys;
   if (!twitchClientId.trim() || !twitchToken.trim()) {
     throw new Error(
-      "Sign in with Twitch in Settings → General, or give this subscription an RSS bridge feed URL."
+      "Sign in with Twitch in Settings → Instances, or give this subscription an RSS bridge feed URL."
     );
   }
   return { "Client-Id": twitchClientId.trim(), Authorization: `Bearer ${twitchToken.trim()}` };
@@ -61,7 +61,7 @@ async function helix(path: string, context: AdapterContext): Promise<Record<stri
     return asArray(asRecord(payload).data).map(asRecord);
   } catch (error) {
     if (error instanceof HttpError && error.status === 401) {
-      throw new Error("Your Twitch sign-in has expired. Sign in again in Settings → General.", {
+      throw new Error("Your Twitch sign-in has expired. Sign in again in Settings → Instances.", {
         cause: error,
       });
     }

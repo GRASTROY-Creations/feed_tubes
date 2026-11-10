@@ -139,7 +139,7 @@ describe("twitchAdapter (Helix)", () => {
   it("asks to sign in when there is no token", async () => {
     const context = { ...fakeHelix(false), apiKeys: apiKeys({ twitchClientId: "client-123" }) };
     const error = await rejectionOf(twitchAdapter.fetchItems(twitch, context));
-    expect(error.message).toContain("Sign in with Twitch in Settings → General");
+    expect(error.message).toContain("Sign in with Twitch in Settings → Instances");
   });
 
   it("explains an expired sign-in", async () => {
@@ -149,7 +149,7 @@ describe("twitchAdapter (Helix)", () => {
     };
     const error = await rejectionOf(twitchAdapter.fetchItems(twitch, context));
     expect(error.message).toBe(
-      "Your Twitch sign-in has expired. Sign in again in Settings → General."
+      "Your Twitch sign-in has expired. Sign in again in Settings → Instances."
     );
   });
 

@@ -132,7 +132,7 @@ describe("pixabayAdapter", () => {
     const { context, requested } = fakeApi([], "");
     const error = await rejectionOf(pixabayAdapter.fetchItems(coverr, context));
     expect(error.message).toBe(
-      "Add your Pixabay API key in Settings → General to load Pixabay videos."
+      "Add your Pixabay API key in Settings → Instances to load Pixabay videos."
     );
     expect(requested).toHaveLength(0);
   });

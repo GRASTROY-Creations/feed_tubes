@@ -2,7 +2,7 @@
  * Pixabay (https://pixabay.com) adapter, following one contributor's videos through the official
  * API: https://pixabay.com/api/docs/#api_search_videos
  *
- * - Every request needs the user's personal (free) API key, from Settings → General.
+ * - Every request needs the user's personal (free) API key, from Settings → Instances.
  * - The API has no contributor filter. The search syntax `user:<name>` is used instead; it is
  *   not documented, so results are also filtered by contributor here. If Pixabay ignores the
  *   syntax, the subscription reports "no videos" instead of showing unrelated footage.
@@ -100,7 +100,7 @@ async function fetchItems(
 ): Promise<FeedItem[]> {
   const key = context.apiKeys.pixabay.trim();
   if (!key) {
-    throw new Error("Add your Pixabay API key in Settings → General to load Pixabay videos.");
+    throw new Error("Add your Pixabay API key in Settings → Instances to load Pixabay videos.");
   }
 
   const user = parsePixabayUser(subscription.channelId);

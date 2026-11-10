@@ -70,7 +70,7 @@ YouTube's feed only accepts `UC…` channel ids. Handles, bare names (stored as 
 
 Pixabay subscriptions follow one contributor through the official video API (`pixabay.com/api/videos/`).
 
-- **API key:** every request needs the user's personal, free key. It's entered under Settings → General → API Keys and stored in `settings.apiKeys`. Exports contain only subscriptions, so the key never leaves the browser except in requests to Pixabay.
+- **API key:** every request needs the user's personal, free key. It's entered under Settings → Instances → API Keys and stored in `settings.apiKeys`. Exports contain only subscriptions, so the key never leaves the browser except in requests to Pixabay.
 - **No key in messages:** `errors.ts` redacts credential query parameters (`key`, `token`, …) from every HTTP and network error, so a failed request can't put the key into the error banner or the cache.
 - **Contributor filter:** the API has none. The adapter searches `q=user:<name>` (undocumented syntax) and keeps only hits whose `user_id` or `user` matches. If Pixabay ignores the syntax, the source reports "no videos" rather than showing unrelated footage.
 - **Dates:** results have no upload time, only the upload day in the CDN path, so dates are day-precise.
@@ -85,7 +85,7 @@ A Twitch subscription is read in one of two ways:
 
 Helix needs a Client ID and a user token:
 
-- **Client ID:** every user registers a free application at dev.twitch.tv (category "Website Integration") and enters its Client ID under Settings → General → API Keys. Settings shows the redirect URL to register, which comes from `browser.identity.getRedirectURL()` and depends on the extension ID.
+- **Client ID:** every user registers a free application at dev.twitch.tv (category "Website Integration") and enters its Client ID under Settings → Instances → API Keys. Settings shows the redirect URL to register, which comes from `browser.identity.getRedirectURL()` and depends on the extension ID.
 - **Token:** "Sign in with Twitch" (`twitch-auth.ts`) uses the OAuth implicit grant through `browser.identity.launchWebAuthFlow`. It needs no client secret and requests no scopes, and it checks the `state` value against forged redirects. The token is validated with `id.twitch.tv/oauth2/validate`, stored in `settings.apiKeys`, and revoked on sign-out.
 - **Expiry:** an expired token shows "sign in again", and changing the Client ID signs the user out.
 - **What's not used:** Twitch's internal GraphQL API with the twitch.tv website's own client ID. That would impersonate Twitch's app and breaks Twitch's terms.

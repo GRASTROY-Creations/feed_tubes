@@ -105,53 +105,6 @@
 
             <hr class="divider" />
 
-            <h3 class="settings-section__subtitle">API Keys</h3>
-            <label class="field">
-              <span>Pixabay API key</span>
-              <input
-                id="pixabay-api-key"
-                type="password"
-                autocomplete="off"
-                spellcheck="false"
-                maxlength="100"
-                placeholder="Paste your key"
-              />
-            </label>
-            <p class="hint">
-              *Free key from pixabay.com/api/docs (Pixabay account needed). Stored only in this
-              browser and never included in exports.
-            </p>
-
-            <label class="field">
-              <span>Twitch Client ID</span>
-              <input
-                id="twitch-client-id"
-                type="text"
-                autocomplete="off"
-                spellcheck="false"
-                maxlength="100"
-                placeholder="From your app at dev.twitch.tv"
-              />
-            </label>
-            <label class="field">
-              <span>Twitch OAuth Redirect URL (paste into your Twitch app)</span>
-              <input id="twitch-redirect-url" type="text" readonly />
-            </label>
-            <div class="form-actions">
-              <button id="twitch-sign-in" class="button button--primary" type="button">
-                Sign in with Twitch
-              </button>
-              <button id="twitch-sign-out" class="button" type="button" hidden>Sign out</button>
-            </div>
-            <p id="twitch-status" class="hint" role="status"></p>
-            <p class="hint">
-              *Register a free application at dev.twitch.tv, category "Website Integration", with
-              the redirect URL above. Twitch channels with an RSS bridge feed URL work without
-              signing in.
-            </p>
-
-            <hr class="divider" />
-
             <h3 class="settings-section__subtitle">Data &amp; About</h3>
             <p id="storage-usage" class="hint"></p>
             <div class="form-actions">
@@ -285,6 +238,53 @@
               </div>
             </form>
             <p id="instance-result" class="hint" role="status"></p>
+
+            <hr class="divider" />
+
+            <h3 class="settings-section__subtitle">API Keys</h3>
+            <label class="field">
+              <span>Pixabay API key</span>
+              <input
+                id="pixabay-api-key"
+                type="password"
+                autocomplete="off"
+                spellcheck="false"
+                maxlength="100"
+                placeholder="Paste your key"
+              />
+            </label>
+            <p class="hint">
+              *Free key from pixabay.com/api/docs (Pixabay account needed). Stored only in this
+              browser and never included in exports.
+            </p>
+
+            <label class="field">
+              <span>Twitch Client ID</span>
+              <input
+                id="twitch-client-id"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                maxlength="100"
+                placeholder="From your app at dev.twitch.tv"
+              />
+            </label>
+            <label class="field">
+              <span>Twitch OAuth Redirect URL (paste into your Twitch app)</span>
+              <input id="twitch-redirect-url" type="text" readonly />
+            </label>
+            <div class="form-actions">
+              <button id="twitch-sign-in" class="button button--primary" type="button">
+                Sign in with Twitch
+              </button>
+              <button id="twitch-sign-out" class="button" type="button" hidden>Sign out</button>
+            </div>
+            <p id="twitch-status" class="hint" role="status"></p>
+            <p class="hint">
+              *Register a free application at dev.twitch.tv, category "Website Integration", with
+              the redirect URL above. Twitch channels with an RSS bridge feed URL work without
+              signing in.
+            </p>
           </div>
         </details>
 
