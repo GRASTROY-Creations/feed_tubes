@@ -10,7 +10,7 @@
  *      GET /helix/streams?user_login=<login>          → the live stream, if any
  *    A live stream is shown as an extra "LIVE: …" card at the top.
  */
-import { HttpError } from "../errors.js";
+import { HttpError, LocalizedError } from "../errors.js";
 import { asArray, asRecord, asString } from "../guards.js";
 import { toIsoString } from "../time.js";
 import type { AdapterContext, FeedItem, PlatformAdapter, Subscription } from "../types.js";
@@ -43,9 +43,7 @@ export function twitchThumbnail(template: string): string {
 function helixHeaders(context: AdapterContext): Record<string, string> {
   const { twitchClientId, twitchToken } = context.apiKeys;
   if (!twitchClientId.trim() || !twitchToken.trim()) {
-    throw new Error(
-      "Sign in with Twitch in Settings → Instances, or give this subscription an RSS bridge feed URL."
-    );
+    throw new LocalizedError("twitch-sign-in");
   }
   return { "Client-Id": twitchClientId.trim(), Authorization: `Bearer ${twitchToken.trim()}` };
 }
@@ -61,9 +59,7 @@ async function helix(path: string, context: AdapterContext): Promise<Record<stri
     return asArray(asRecord(payload).data).map(asRecord);
   } catch (error) {
     if (error instanceof HttpError && error.status === 401) {
-      throw new Error("Your Twitch sign-in has expired. Sign in again in Settings → Instances.", {
-        cause: error,
-      });
+      throw new LocalizedError("twitch-expired", undefined, { cause: error });
     }
     throw error;
   }
@@ -86,10 +82,12 @@ function liveItem(
   subscription: Subscription,
   login: string
 ): FeedItem | null {
-  const game = asString(stream.game_name);
   return createFeedItem(subscription, {
     id: `twitch:live:${asString(stream.id)}`,
-    title: `LIVE: ${asString(stream.title) || "Untitled stream"}${game ? ` (${game})` : ""}`,
+    title: asString(stream.title),
+    stream: "live",
+    game: asString(stream.game_name),
+    allowUntitled: true,
     url: twitchChannelUrl(login),
     thumbnailUrl: twitchThumbnail(asString(stream.thumbnail_url)),
     publishedAt: toIsoString(asString(stream.started_at)),
@@ -105,7 +103,7 @@ async function fetchFromHelix(
   const [user] = await helix(`users?login=${encodeURIComponent(login)}`, context);
   const userId = asString(user?.id);
   if (!userId) {
-    throw new Error(`Twitch has no channel named "${subscription.channelId}".`);
+    throw new LocalizedError("twitch-not-found", { name: subscription.channelId });
   }
 
   const first = Math.min(MAX_VIDEOS, Math.max(1, context.itemsPerSource));
@@ -127,7 +125,7 @@ async function fetchItems(
     return fetchFeedItems(subscription, subscription.feedUrl, context);
   }
   if (!subscription.channelId) {
-    throw new Error("This Twitch subscription has no channel name.");
+    throw new LocalizedError("twitch-no-name");
   }
   return fetchFromHelix(subscription, context);
 }

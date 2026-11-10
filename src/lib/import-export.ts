@@ -1,3 +1,4 @@
+import { LocalizedError } from "./errors.js";
 import { normalizeHeader, parseCsv, rowsToObjects, serializeCsv } from "./csv.js";
 import { asArray, asRecord, asString, isRecord, type UnknownRecord } from "./guards.js";
 import { getPlatform } from "./platforms/registry.js";
@@ -10,6 +11,7 @@ import { normalizeSubscription } from "./subscriptions.js";
 import type { RawSubscription, Subscription } from "./types.js";
 import { hostKey, normalizeUrl } from "./url.js";
 import { parseXml } from "./xml.js";
+import { t } from "./i18n/index.js";
 
 export type ImportFormat =
   | "unified-json"
@@ -225,7 +227,7 @@ function parseUnifiedJson(text: string): ParsedSubscriptions {
   const data = JSON.parse(text) as unknown;
   const values: unknown = Array.isArray(data) ? data : asRecord(data).subscriptions;
   if (!Array.isArray(values)) {
-    throw new Error("This JSON file does not contain a subscriptions array.");
+    throw new LocalizedError("import-error-no-array");
   }
   return normalizeMany(values.map(asRecord));
 }
@@ -235,7 +237,7 @@ function parseYouTubeJson(text: string): ParsedSubscriptions {
   const data = JSON.parse(text) as unknown;
   const values: unknown = Array.isArray(data) ? data : asRecord(data).items;
   if (!Array.isArray(values)) {
-    throw new Error("This JSON file does not contain YouTube subscriptions.");
+    throw new LocalizedError("import-error-no-you-tube");
   }
 
   const raws = values.map((value) => {
@@ -264,7 +266,7 @@ function parseNewPipeJson(text: string): ParsedSubscriptions {
   for (const value of asArray(asRecord(JSON.parse(text)).subscriptions)) {
     const item = asRecord(value);
     if (Number(item.service_id ?? 0) !== 0) {
-      warnings.push("Skipped a non-YouTube NewPipe subscription.");
+      warnings.push(t("import-warn-newpipe"));
       continue;
     }
 
@@ -314,7 +316,7 @@ function parseFreeTubeDb(text: string): ParsedSubscriptions {
   for (const line of nonEmptyLines(text)) {
     const parsed = tryParseJson(line);
     if (!parsed.ok) {
-      warnings.push("Skipped a FreeTube line that is not valid JSON.");
+      warnings.push(t("import-warn-freetube-line"));
       continue;
     }
     raws.push(...freeTubeProfileSubscriptions(asRecord(parsed.value)));
@@ -328,7 +330,7 @@ function parseYouTubeCsv(text: string): ParsedSubscriptions {
   const rows = parseCsv(text);
   const [first] = rows;
   if (!first) {
-    throw new Error("The CSV file is empty.");
+    throw new LocalizedError("import-error-csv-empty");
   }
 
   const hasHeader = !isYouTubeChannelId(first[0] ?? "") && !normalizeUrl(first[1]);
@@ -352,10 +354,10 @@ function parseUnifiedCsv(text: string): ParsedSubscriptions {
 
 function parseOpml(text: string): ParsedSubscriptions {
   if (typeof DOMParser === "undefined") {
-    throw new Error("OPML import is not available in this environment.");
+    throw new LocalizedError("import-error-opml-unavailable");
   }
 
-  const document = parseXml(text, "The OPML file is not valid XML.");
+  const document = parseXml(text, "import-error-opml-xml");
   const raws: RawSubscription[] = [];
 
   for (const outline of Array.from(document.getElementsByTagName("outline"))) {
@@ -407,10 +409,10 @@ export function parseSubscriptionsFile(text: string, filename = ""): ImportResul
   const format = detectFormat(text, filename);
 
   if (format === "empty") {
-    throw new Error("The selected file is empty.");
+    throw new LocalizedError("import-error-empty");
   }
   if (!isImportFormat(format)) {
-    throw new Error("Unrecognized subscription file format.");
+    throw new LocalizedError("import-error-unknown-format");
   }
 
   return { format, ...PARSERS[format](text) };

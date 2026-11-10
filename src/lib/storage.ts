@@ -1,7 +1,12 @@
 import { asArray, asRecord, isRecord } from "./guards.js";
+import { normalizeLanguageSetting } from "./i18n/index.js";
 import type { AppState, FeedCache, RefreshState, Settings, Subscription } from "./types.js";
 
-export const SCHEMA_VERSION = 1;
+/**
+ * Version 2: cached errors are message ids instead of translated text, and stream cards carry
+ * a `stream` flag instead of a translated title prefix.
+ */
+export const SCHEMA_VERSION = 2;
 export const REFRESH_INTERVAL_DEFAULT = 180;
 export const REFRESH_INTERVAL_OPTIONS: readonly number[] = [60, 180, 360];
 
@@ -21,6 +26,7 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
     activeTab: "feed",
     platformFilter: "all",
     channelFilter: "all",
+    language: "auto",
   }),
   apiKeys: Object.freeze({
     pixabay: "",
@@ -51,7 +57,11 @@ function mergeSettings(value: unknown): Settings {
     instances: asArray(stored.instances) as Settings["instances"],
     refresh: { ...defaults.refresh, ...asRecord(stored.refresh) },
     feed: { ...defaults.feed, ...asRecord(stored.feed) },
-    ui: { ...defaults.ui, ...asRecord(stored.ui) },
+    ui: {
+      ...defaults.ui,
+      ...asRecord(stored.ui),
+      language: normalizeLanguageSetting(asRecord(stored.ui).language),
+    },
     apiKeys: { ...defaults.apiKeys, ...asRecord(stored.apiKeys) },
   };
 }
@@ -63,7 +73,10 @@ export function normalizeState(raw: unknown): AppState {
     schemaVersion: SCHEMA_VERSION,
     subscriptions: asArray(value.subscriptions) as Subscription[],
     settings: mergeSettings(value.settings),
-    cache: (isRecord(value.cache) ? value.cache : {}) as FeedCache,
+    // Older caches hold text in the language of the time; they refetch on their own.
+    cache: (isRecord(value.cache) && value.schemaVersion === SCHEMA_VERSION
+      ? value.cache
+      : {}) as FeedCache,
     refreshState: { ...DEFAULT_REFRESH_STATE, ...asRecord(value.refreshState) },
   };
 }
@@ -81,7 +94,8 @@ export async function saveSettings(settings: Settings): Promise<void> {
 }
 
 export async function saveCache(cache: FeedCache): Promise<void> {
-  await browser.storage.local.set({ cache });
+  // The version marks the cache format, so it is written with every cache.
+  await browser.storage.local.set({ schemaVersion: SCHEMA_VERSION, cache });
 }
 
 export async function saveRefreshState(refreshState: RefreshState): Promise<void> {

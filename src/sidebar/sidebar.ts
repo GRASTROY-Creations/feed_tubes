@@ -1,4 +1,4 @@
-import { errorMessage } from "../lib/errors.js";
+import { localizedErrorMessage, LocalizedError } from "../lib/errors.js";
 import { getElement } from "../lib/dom.js";
 import { isFeedUpdatedEvent, sendRequest, type FeedUpdatedEvent } from "../lib/messages.js";
 import { originsForSubscriptions, requestOrigins } from "../lib/permissions.js";
@@ -17,6 +17,8 @@ import { initTabs, type Tabs } from "./components/tabs.js";
 import { showError, showToast } from "./components/toast.js";
 import { initFeedView } from "./views/feed-view.js";
 import { initSettingsView } from "./views/settings-view.js";
+import { applyTranslations } from "../lib/i18n/dom.js";
+import { applyLanguageSetting, loadLocales, t, translate } from "../lib/i18n/index.js";
 
 const MINUTE_MS = 60 * 1000;
 const DEFAULT_CACHE_TTL_MINUTES = 15;
@@ -43,7 +45,15 @@ class App implements AppContext {
     this.#tabs = tabs;
   }
 
+  /**
+   * Re-renders every view in the stored interface language. Static markup is translated here
+   * too, so a language change applies everywhere without reloading the sidebar.
+   */
   renderAll(): void {
+    if (this.#state) {
+      applyLanguageSetting(this.#state.settings.ui.language);
+      applyTranslations(document);
+    }
     for (const view of this.#views) {
       view.render();
     }
@@ -99,14 +109,14 @@ class App implements AppContext {
     try {
       const result = await sendRequest("refresh-request");
       if (!result.ok) {
-        throw new Error(result.error);
+        throw new LocalizedError(result.error.id, result.error.args);
       }
       if (manual) {
         reportManualRefresh(result);
       }
       await this.reload();
     } catch (error) {
-      showError(errorMessage(error, "Could not refresh feeds."));
+      showError(localizedErrorMessage(error, "app-error-refresh-failed"));
     } finally {
       this.#refreshing = false;
       this.renderAll();
@@ -148,18 +158,21 @@ function handleFeedUpdated(app: App, event: FeedUpdatedEvent): void {
     .reload()
     .then(() => {
       if (event.error) {
-        showError(event.error);
+        showError(translate(event.error));
       } else if (event.reason === "alarm") {
-        showToast("Feed refreshed in the background.");
+        showToast(t("app-toast-background-refreshed"));
       }
     })
     .catch(() => {
-      showError("Could not reload the feed.");
+      showError(t("app-error-reload-failed"));
     });
 }
 
 async function start(): Promise<void> {
   const app = new App();
+  // Every language is loaded up front, so switching the language later is instant. Loading
+  // must finish before the first render (`reload()` renders), or the markup stays untranslated.
+  await loadLocales();
   await app.reload();
 
   const feedView = initFeedView(app);
@@ -195,7 +208,7 @@ async function start(): Promise<void> {
 
   browser.permissions.onRemoved.addListener((permissions) => {
     if (permissions.origins?.length) {
-      showError("Host access was removed. Some sources need access again.");
+      showError(t("app-error-access-removed"));
       void app.reload();
     }
   });

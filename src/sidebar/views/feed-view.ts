@@ -1,7 +1,6 @@
 import { fillSelect, getElement, setText } from "../../lib/dom.js";
 import { platformLabel } from "../../lib/platforms/registry.js";
 import { subscriptionKey } from "../../lib/subscriptions.js";
-import { pluralize } from "../../lib/text.js";
 import { byPublishedDesc, formatLastUpdated } from "../../lib/time.js";
 import {
   ALL,
@@ -13,6 +12,7 @@ import {
 import type { AppContext, View } from "../app-context.js";
 import { showError, showToast } from "../components/toast.js";
 import { createVideoCard } from "../components/video-card.js";
+import { t, translate } from "../../lib/i18n/index.js";
 
 /** Videos shown at first, and added by each click on "Load more". */
 const PAGE_SIZE = 30;
@@ -77,7 +77,7 @@ function flattenItems(cache: FeedCache, subscriptions: readonly Subscription[]):
       items.push({
         ...item,
         sourceKey: key,
-        channelName: item.channelName || titleOf(subscription) || "Unknown channel",
+        channelName: item.channelName || titleOf(subscription) || t("card-unknown-channel"),
       });
     }
   }
@@ -113,12 +113,15 @@ export function initFeedView(app: AppContext): View {
     const { ui } = app.state.settings;
     fillSelect(
       elements.platformFilter,
-      withFallback(platformOptions(subscriptions), "All platforms"),
+      withFallback(platformOptions(subscriptions), t("common-all-platforms")),
       { selectedValue: ui.platformFilter, fallback: ALL }
     );
     fillSelect(
       elements.channelFilter,
-      withFallback(channelOptions(subscriptions, elements.platformFilter.value), "All channels"),
+      withFallback(
+        channelOptions(subscriptions, elements.platformFilter.value),
+        t("common-all-channels")
+      ),
       { selectedValue: ui.channelFilter, fallback: ALL }
     );
   }
@@ -129,11 +132,11 @@ export function initFeedView(app: AppContext): View {
 
     let status = "";
     if (app.refreshing) {
-      status = "Refreshing feeds…";
+      status = t("feed-status-refreshing");
     } else if (failures > 0) {
-      status = `${pluralize(failures, "source")} could not be refreshed.`;
+      status = t("feed-status-failures", { count: failures });
     } else if (subscriptions.length > 0 && !refreshState.lastCompletedAt) {
-      status = "Feed has not been refreshed yet.";
+      status = t("feed-status-never-refreshed");
     }
 
     setText(elements.feedStatus, status);
@@ -150,10 +153,11 @@ export function initFeedView(app: AppContext): View {
     if (permissionErrors.length > 0) {
       setText(
         elements.feedErrorText,
-        `Access is needed for ${pluralize(permissionErrors.length, "source")}. Grant access to load the full feed.`
+        t("feed-error-permissions", { count: permissionErrors.length })
       );
-    } else if (errors[0]) {
-      setText(elements.feedErrorText, errors[0].error);
+    } else if (errors[0]?.error) {
+      // Stored as a message id, so it follows a language change without a new fetch.
+      setText(elements.feedErrorText, translate(errors[0].error));
     }
   }
 
@@ -161,19 +165,17 @@ export function initFeedView(app: AppContext): View {
     if (!hasSubscriptions) {
       return {
         action: "settings",
-        title: "No subscriptions yet",
-        text: "Add a channel or import a subscription file.",
-        button: "Open settings",
+        title: t("feed-empty-no-subscriptions-title"),
+        text: t("feed-empty-no-subscriptions-text"),
+        button: t("feed-empty-no-subscriptions-button"),
       };
     }
     if (!hasItems) {
       return {
         action: "refresh",
-        title: app.refreshing ? "Refreshing feeds" : "No videos yet",
-        text: app.refreshing
-          ? "Your subscriptions are being checked for new videos."
-          : "Fetch the latest videos from your subscriptions.",
-        button: "Fetch now",
+        title: app.refreshing ? t("feed-empty-refreshing-title") : t("feed-empty-no-videos-title"),
+        text: app.refreshing ? t("feed-empty-refreshing-text") : t("feed-empty-no-videos-text"),
+        button: t("feed-empty-no-videos-button"),
       };
     }
     return null;
@@ -203,7 +205,7 @@ export function initFeedView(app: AppContext): View {
     if (remaining > 0) {
       setText(
         elements.loadMore,
-        `Load ${Math.min(PAGE_SIZE, remaining)} more (${remaining} remaining)`
+        t("feed-load-more-count", { count: Math.min(PAGE_SIZE, remaining), remaining })
       );
     }
   }
@@ -232,9 +234,9 @@ export function initFeedView(app: AppContext): View {
       (filteredItems.length === 0
         ? {
             action: "filters" as const,
-            title: "No matching videos",
-            text: "Try another platform or channel filter.",
-            button: "Clear filters",
+            title: t("feed-empty-no-matches-title"),
+            text: t("feed-empty-no-matches-text"),
+            button: t("feed-empty-no-matches-button"),
           }
         : null);
     renderEmpty(emptyState);
@@ -277,20 +279,20 @@ export function initFeedView(app: AppContext): View {
   async function grantPermissions(): Promise<void> {
     const button = elements.grantPermissions;
     button.disabled = true;
-    setText(button, "Requesting…");
+    setText(button, t("feed-requesting"));
 
     try {
       if (await app.requestPermissions()) {
-        showToast("Access granted. Refreshing feeds.");
+        showToast(t("feed-toast-access-granted"));
         await app.refresh({ manual: true });
       } else {
-        showError("Access was not granted. Some sources will stay unavailable.");
+        showError(t("feed-toast-access-denied"));
       }
     } catch {
-      showError("Could not request access.");
+      showError(t("feed-toast-access-failed"));
     } finally {
       button.disabled = false;
-      setText(button, "Grant access");
+      setText(button, t("feed-grant-access"));
     }
   }
 

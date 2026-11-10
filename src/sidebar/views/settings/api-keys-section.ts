@@ -10,6 +10,7 @@ import type { ApiKeys } from "../../../lib/types.js";
 import type { AppContext } from "../../app-context.js";
 import { showError, showToast } from "../../components/toast.js";
 import { withDisabled, type SettingsSection } from "./shared.js";
+import { t, type MessageKey } from "../../../lib/i18n/index.js";
 
 /** Personal API keys and the Twitch sign-in. Text fields are saved when they lose focus. */
 export function initApiKeysSection(app: AppContext): SettingsSection {
@@ -32,7 +33,7 @@ export function initApiKeysSection(app: AppContext): SettingsSection {
   function bindTextField(
     input: HTMLInputElement,
     field: "pixabay" | "twitchClientId",
-    label: string
+    messages: { saved: MessageKey; removed: MessageKey }
   ): void {
     input.addEventListener("change", () => {
       const value = input.value.trim();
@@ -45,13 +46,19 @@ export function initApiKeysSection(app: AppContext): SettingsSection {
           ? { twitchClientId: value, twitchToken: "", twitchLogin: "" }
           : { [field]: value };
       void saveKeys(partial).then(() => {
-        showToast(value ? `${label} saved.` : `${label} removed.`);
+        showToast(t(value ? messages.saved : messages.removed));
       });
     });
   }
 
-  bindTextField(elements.pixabay, "pixabay", "Pixabay API key");
-  bindTextField(elements.twitchClientId, "twitchClientId", "Twitch Client ID");
+  bindTextField(elements.pixabay, "pixabay", {
+    saved: "keys-pixabay-saved",
+    removed: "keys-pixabay-removed",
+  });
+  bindTextField(elements.twitchClientId, "twitchClientId", {
+    saved: "keys-twitch-client-id-saved",
+    removed: "keys-twitch-client-id-removed",
+  });
 
   elements.twitchRedirect.value = browser.identity.getRedirectURL();
   elements.twitchRedirect.addEventListener("focus", () => {
@@ -61,7 +68,7 @@ export function initApiKeysSection(app: AppContext): SettingsSection {
   elements.twitchSignIn.addEventListener("click", () => {
     const clientId = elements.twitchClientId.value.trim() || keys().twitchClientId;
     if (!clientId) {
-      showError("Enter your Twitch Client ID first.");
+      showError(t("keys-enter-client-id"));
       return;
     }
 
@@ -70,7 +77,7 @@ export function initApiKeysSection(app: AppContext): SettingsSection {
     void withDisabled(elements.twitchSignIn, async () => {
       try {
         if (!(await access)) {
-          showError("Access to Twitch was not granted.");
+          showError(t("keys-twitch-access-denied"));
           return;
         }
         const session = await signInWithTwitch(clientId);
@@ -79,9 +86,9 @@ export function initApiKeysSection(app: AppContext): SettingsSection {
           twitchToken: session.token,
           twitchLogin: session.login,
         });
-        showToast(`Signed in to Twitch as ${session.login}.`);
+        showToast(t("keys-signed-in-toast", { login: session.login }));
       } catch (error) {
-        showError(errorMessage(error, "Twitch sign-in failed."));
+        showError(errorMessage(error, t("keys-sign-in-failed")));
       }
     });
   });
@@ -91,7 +98,7 @@ export function initApiKeysSection(app: AppContext): SettingsSection {
     void withDisabled(elements.twitchSignOut, async () => {
       await revokeTwitchToken(twitchClientId, twitchToken);
       await saveKeys({ twitchToken: "", twitchLogin: "" });
-      showToast("Signed out of Twitch.");
+      showToast(t("keys-signed-out"));
     });
   });
 
@@ -111,7 +118,9 @@ export function initApiKeysSection(app: AppContext): SettingsSection {
       elements.twitchSignOut.hidden = !signedIn;
       setText(
         elements.twitchStatus,
-        signedIn ? `Signed in as ${current.twitchLogin || "a Twitch user"}.` : "Not signed in."
+        signedIn
+          ? t("keys-signed-in-as", { login: current.twitchLogin || t("keys-twitch-user") })
+          : t("keys-not-signed-in")
       );
     },
   };

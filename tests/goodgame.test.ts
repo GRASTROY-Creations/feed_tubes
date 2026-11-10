@@ -65,7 +65,10 @@ describe("goodgameAdapter", () => {
     expect(items).toHaveLength(1);
     expect(at(items, 0)).toMatchObject({
       id: "goodgame:miker",
-      title: "LIVE: Пройдем ли Дредноут?.. (XCOM: Enemy Within)",
+      // Stored as published; the card adds the translated "LIVE:" label.
+      title: "Пройдем ли Дредноут?..",
+      stream: "live",
+      game: "XCOM: Enemy Within",
       url: "https://goodgame.ru/Miker",
       thumbnailUrl: "https://hls.goodgame.ru/previews/5.jpg",
       publishedAt: "2026-11-09T19:34:08.000Z",
@@ -78,7 +81,11 @@ describe("goodgameAdapter", () => {
       miker,
       context(() => Promise.resolve(stream(false)))
     );
-    expect(item?.title).toBe("Last stream: Пройдем ли Дредноут?.. (XCOM: Enemy Within)");
+    expect(item).toMatchObject({
+      title: "Пройдем ли Дредноут?..",
+      stream: "last",
+      game: "XCOM: Enemy Within",
+    });
     expect(item?.thumbnailUrl).toBe("https://goodgame.ru/files/logotypes/ch_229673_LbfN.png");
   });
 

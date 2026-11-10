@@ -2,7 +2,7 @@ import { createId, getElement, setMessage, setText } from "../../../lib/dom.js";
 import { errorMessage } from "../../../lib/errors.js";
 import { fetchText } from "../../../lib/fetch.js";
 import { requestOrigins } from "../../../lib/permissions.js";
-import { INSTANCE_KIND_LABELS, isInstanceKind } from "../../../lib/platforms/registry.js";
+import { instanceKindLabel, isInstanceKind } from "../../../lib/platforms/registry.js";
 import type { Instance } from "../../../lib/types.js";
 import { normalizeBaseUrl, originPattern } from "../../../lib/url.js";
 import type { AppContext } from "../../app-context.js";
@@ -15,12 +15,12 @@ import {
   withDisabled,
   type SettingsSection,
 } from "./shared.js";
+import { t } from "../../../lib/i18n/index.js";
 
 const TEST_TIMEOUT_MS = 10_000;
-const INVALID_URL_MESSAGE = "Enter a valid http(s) base URL.";
 
 export function instanceLabel(instance: Instance): string {
-  return instance.label || INSTANCE_KIND_LABELS[instance.kind];
+  return instance.label || instanceKindLabel(instance.kind);
 }
 
 export function initInstancesSection(app: AppContext): SettingsSection {
@@ -51,7 +51,7 @@ export function initInstancesSection(app: AppContext): SettingsSection {
     elements.kind.value = instance.kind;
     elements.label.value = instance.label;
     elements.url.value = instance.url;
-    setText(submit, "Save");
+    setText(submit, t("common-save"));
     elements.cancel.hidden = false;
     setMessage(elements.result, "");
     elements.form.scrollIntoView({ block: "nearest" });
@@ -59,20 +59,18 @@ export function initInstancesSection(app: AppContext): SettingsSection {
   }
 
   async function removeInstance(instance: Instance): Promise<void> {
-    const confirmed = window.confirm(
-      `Remove the ${instanceLabel(instance)} instance? Existing subscriptions keep their own instance URL.`
-    );
+    const confirmed = window.confirm(t("inst-confirm-remove", { name: instanceLabel(instance) }));
     if (!confirmed) {
       return;
     }
     await saveInstances(instances().filter((value) => value.id !== instance.id));
-    showToast("Instance removed.");
+    showToast(t("inst-removed"));
   }
 
   function matchesSearch(instance: Instance, search: string): boolean {
     return (
       !search ||
-      [instanceLabel(instance), INSTANCE_KIND_LABELS[instance.kind], instance.url].some((value) =>
+      [instanceLabel(instance), instanceKindLabel(instance.kind), instance.url].some((value) =>
         value.toLowerCase().includes(search)
       )
     );
@@ -84,11 +82,7 @@ export function initInstancesSection(app: AppContext): SettingsSection {
 
     if (values.length === 0) {
       elements.list.replaceChildren(
-        hintParagraph(
-          instances().length === 0
-            ? "No instances configured. Add a PeerTube instance or bridge base above."
-            : "No instances match the search."
-        )
+        hintParagraph(instances().length === 0 ? t("inst-empty") : t("inst-no-matches"))
       );
       return;
     }
@@ -97,11 +91,11 @@ export function initInstancesSection(app: AppContext): SettingsSection {
       ...values.map((instance) =>
         listRow({
           title: instanceLabel(instance),
-          meta: `${INSTANCE_KIND_LABELS[instance.kind]} · ${instance.url}`,
+          meta: `${instanceKindLabel(instance.kind)} · ${instance.url}`,
           onEdit: () => {
             startEditing(instance);
           },
-          removeLabel: "Remove",
+          removeLabel: t("common-remove"),
           onRemove: () => void removeInstance(instance),
         })
       )
@@ -113,17 +107,17 @@ export function initInstancesSection(app: AppContext): SettingsSection {
     editingId = null;
     elements.form.reset();
     elements.kind.value = "peertube";
-    setText(submit, "Add");
+    setText(submit, t("common-add"));
     elements.cancel.hidden = true;
     setMessage(elements.result, "");
   }
 
   function validationError(kind: string, url: string): string {
     if (!url) {
-      return INVALID_URL_MESSAGE;
+      return t("inst-invalid-url");
     }
     if (!isInstanceKind(kind)) {
-      return "Choose an instance kind.";
+      return t("inst-choose-kind");
     }
     const duplicate = instances().some(
       (instance) =>
@@ -131,7 +125,7 @@ export function initInstancesSection(app: AppContext): SettingsSection {
         instance.kind === kind &&
         instance.url.toLowerCase() === url.toLowerCase()
     );
-    return duplicate ? "That instance is already configured." : "";
+    return duplicate ? t("inst-duplicate") : "";
   }
 
   async function save(): Promise<void> {
@@ -154,7 +148,7 @@ export function initInstancesSection(app: AppContext): SettingsSection {
 
     await saveInstances(next);
     reset();
-    showToast(wasEditing ? "Instance saved." : "Instance added.");
+    showToast(wasEditing ? t("inst-saved") : t("inst-added"));
   }
 
   elements.form.addEventListener("submit", (event) => {
@@ -165,27 +159,31 @@ export function initInstancesSection(app: AppContext): SettingsSection {
   elements.test.addEventListener("click", () => {
     const base = normalizeBaseUrl(elements.url.value);
     if (!base) {
-      setMessage(elements.result, INVALID_URL_MESSAGE, { error: true });
+      setMessage(elements.result, t("inst-invalid-url"), { error: true });
       return;
     }
 
     // Request the permission before any await so it still counts as a user action.
     const permission = requestOrigins([originPattern(base)]);
     const endpoint = elements.kind.value === "peertube" ? `${base}/api/v1/config` : base;
-    setMessage(elements.result, "Testing connection…");
+    setMessage(elements.result, t("inst-testing"));
 
     void withDisabled(elements.test, async () => {
       try {
         if (!(await permission)) {
-          setMessage(elements.result, "Access to this host was not granted.", { error: true });
+          setMessage(elements.result, t("inst-access-denied"), { error: true });
           return;
         }
         await fetchText(endpoint, { timeoutMs: TEST_TIMEOUT_MS, retries: 0 });
-        setMessage(elements.result, "Connection succeeded.");
+        setMessage(elements.result, t("inst-connected"));
       } catch (error) {
-        setMessage(elements.result, `Connection failed: ${errorMessage(error, "unknown error")}`, {
-          error: true,
-        });
+        setMessage(
+          elements.result,
+          t("inst-connection-failed", { error: errorMessage(error, t("common-unknown-error")) }),
+          {
+            error: true,
+          }
+        );
       }
     });
   });

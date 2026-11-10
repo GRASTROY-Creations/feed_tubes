@@ -1,5 +1,5 @@
 import { getRefreshAlarm, REFRESH_ALARM, scheduleRefreshAlarm } from "../lib/alarms.js";
-import { errorMessage } from "../lib/errors.js";
+import { toLocalizedText } from "../lib/errors.js";
 import { fetchJson, fetchText, postJson } from "../lib/fetch.js";
 import {
   broadcast,
@@ -11,12 +11,22 @@ import {
 import { hasPermissionForSubscription } from "../lib/permissions.js";
 import { refreshFeeds } from "../lib/refresh.js";
 import { loadState, saveCache, saveRefreshState } from "../lib/storage.js";
+import { applyLanguageSetting, loadLocales } from "../lib/i18n/index.js";
+
+/**
+ * Translations, loaded once per background page. Errors are stored as message ids, so the
+ * background needs text only for the messages of the errors it creates (and their logs).
+ */
+const localesReady = loadLocales().catch((error: unknown) => {
+  console.error("FeedTubes could not load its translations.", error);
+});
 
 /** The refresh in flight, shared by every caller so feeds are never fetched twice at once. */
 let activeRefresh: Promise<RequestResponses["refresh-request"]> | null = null;
 
 async function performRefresh(reason: RefreshReason): Promise<RequestResponses["refresh-request"]> {
-  const state = await loadState();
+  const [state] = await Promise.all([loadState(), localesReady]);
+  applyLanguageSetting(state.settings.ui.language);
   const startedAt = new Date().toISOString();
   await saveRefreshState({ ...state.refreshState, running: true, startedAt });
 
@@ -52,10 +62,10 @@ async function performRefresh(reason: RefreshReason): Promise<RequestResponses["
     });
     return { ok: true, ...summary };
   } catch (error) {
-    const message = errorMessage(error, "Refresh failed.");
+    const text = toLocalizedText(error, "background-refresh-failed");
     await saveRefreshState({ ...state.refreshState, running: false, startedAt: null });
-    await broadcast({ type: "feed-updated", error: message, reason });
-    return { ok: false, error: message };
+    await broadcast({ type: "feed-updated", error: text, reason });
+    return { ok: false, error: text };
   }
 }
 
@@ -81,7 +91,7 @@ const handlers: RequestHandlers = {
       await rescheduleAlarm();
       return { ok: true };
     } catch (error) {
-      return { ok: false, error: errorMessage(error, "Could not update the alarm.") };
+      return { ok: false, error: toLocalizedText(error, "background-alarm-update-failed") };
     }
   },
 
@@ -89,7 +99,7 @@ const handlers: RequestHandlers = {
     try {
       return { ok: true, alarm: await getRefreshAlarm() };
     } catch (error) {
-      return { ok: false, error: errorMessage(error, "Could not read the alarm.") };
+      return { ok: false, error: toLocalizedText(error, "background-alarm-read-failed") };
     }
   },
 };

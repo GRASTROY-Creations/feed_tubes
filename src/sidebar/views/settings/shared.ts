@@ -1,6 +1,7 @@
 import { createEl, createOption } from "../../../lib/dom.js";
 import { PLATFORM_IDS, platformLabel } from "../../../lib/platforms/registry.js";
 import { ALL } from "../../../lib/types.js";
+import { t } from "../../../lib/i18n/index.js";
 
 /** One block of the settings panel. */
 export interface SettingsSection {
@@ -23,7 +24,7 @@ export function fillPlatformOptions(
   { includeAll = false }: { includeAll?: boolean } = {}
 ): void {
   select.replaceChildren(
-    ...(includeAll ? [createOption(ALL, "All platforms")] : []),
+    ...(includeAll ? [createOption(ALL, t("common-all-platforms"))] : []),
     ...PLATFORM_IDS.map((platform) => createOption(platform, platformLabel(platform)))
   );
 }
@@ -52,7 +53,7 @@ export function listRow({
 }: ListRowOptions): HTMLDivElement {
   const edit = createEl("button", {
     className: "button button--compact",
-    text: "Edit",
+    text: t("common-edit"),
     attrs: { type: "button" },
   });
   edit.addEventListener("click", onEdit);

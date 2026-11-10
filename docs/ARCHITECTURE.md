@@ -4,7 +4,7 @@
 
 FeedTubes is a Manifest V3 WebExtension for Firefox and LibreWolf. Its UI is a sidebar panel registered with `sidebar_action`; a background script refreshes feeds on a timer.
 
-All code is TypeScript under `src/`. `tsc` compiles it one file per module into `build/`, next to copies of the static assets. `build/` is what the browser loads and what `web-ext` packages. No bundler is involved, so every shipped `.js` file maps 1:1 to a `.ts` source file.
+All code is TypeScript under `src/`. `tsc` compiles it one file per module into `build/`, next to copies of the static assets. `build/` is what the browser loads and what `web-ext` packages. No bundler is involved, so every shipped `.js` file maps 1:1 to a `.ts` source file. The one exception is `build/vendor/fluent-bundle/`, the unmodified ES module build of the `@fluent/bundle` dependency.
 
 ```text
 src/
@@ -25,6 +25,13 @@ src/
       youtube.ts, peertube.ts, rutube.ts, odysee.ts, dailymotion.ts, dtube.ts, pixabay.ts,
       twitch.ts, goodgame.ts, generic-rss.ts
     twitch-auth.ts              "Sign in with Twitch" (OAuth implicit grant)
+    i18n/
+      index.ts                  Fluent bundles, language choice, t(), LocalizedText
+      format.ts                 dates, relative times, units, lists via Intl
+      isv-cyrillic.ts           Interslavic Latin → Cyrillic
+      keys.ts                   MessageKey type, generated from eng/feedtubes.ftl
+      dom.ts                    translates data-i18n markup
+  locales/<ISO 639-3>/feedtubes.ftl   eng, rus, deu, isv-Latn
   sidebar/
     sidebar.html, sidebar.css
     sidebar.ts                  App controller (implements AppContext)
@@ -149,6 +156,38 @@ Adding a YouTube `@handle` resolves it to a `UC…` channel id when the subscrip
 - The DOM is built with `createEl`/`textContent` only. ESLint's `no-unsanitized` rules reject HTML sinks.
 - CSV exports neutralize spreadsheet formulas.
 - No data leaves the browser except requests to the platforms and bridges the user configures, so `data_collection_permissions` declares `none`.
+
+## Interface language
+
+FeedTubes translates its interface with [Project Fluent](https://projectfluent.org/) (`@fluent/bundle`), in `src/lib/i18n/`. Firefox's `browser.i18n` always follows the browser's language, can't be switched inside the add-on, and has no Interslavic. The rules behind this section are in [DEVELOPMENT.md](DEVELOPMENT.md#internationalisation-rules).
+
+- **Languages:** identified by ISO 639-3 code, with an ISO 15924 script where a language has several: `eng`, `rus`, `deu`, `isv-Latn`, `isv-Cyrl`. `LANGUAGE_TAGS` maps them to BCP 47 (`en`, `ru`, `de`, …) for `Intl` and `<html lang>`.
+- **Messages:** one Fluent file per language, `src/locales/<code>/feedtubes.ftl`, with `eng` as the source.
+  - Arguments are `{ $name }`. Countable text uses selectors (`{ $count -> [one] … *[other] … }`), resolved with `Intl.PluralRules`.
+  - `src/lib/i18n/keys.ts` is generated from the English file (`bun run i18n:keys`), so `t()` only accepts existing ids.
+- **Loading:** `loadLocales()` fetches every `.ftl` file packaged with the extension once per context: the sidebar before its first render, the background before its first refresh. It builds one `FluentBundle` per language with `useIsolating: false`, so no invisible bidi marks end up in the text. Switching the language and `t()` are synchronous afterwards.
+- **Interslavic:**
+  - **Plurals and numbers:** its bundle has the locales `["isv-Latn", "ru"]`, so plural rules and number formatting fall back to Russian, whose one/few/many pattern Interslavic shares.
+  - **Cyrillic:** generated from the Latin file by `transliterateFtl()` when it loads, so both scripts always match. Only message text changes. Ids, variant keys, `{ $arguments }`, brand names, URLs, domains and abbreviations (RSS, URL, API…) stay as written, and arguments like channel names are inserted afterwards, never transliterated.
+- **Choosing the language:** `settings.ui.language` is `"auto"` (default) or one of the codes above. Values saved by older versions (`en`, `ru`, `de`) are mapped when the settings load.
+  - "Automatic" follows `browser.i18n.getUILanguage()` when it is English, Russian or German, otherwise Russian.
+  - `applyLanguageSetting()` activates it: in the sidebar on every render, in the background before each refresh.
+- **Formatting (`format.ts`):** all of it goes through `Intl`, in the active language:
+  - video dates: `Intl.DateTimeFormat`, numeric, 24-hour (`05.11.2026, 16:01` in German)
+  - "Updated 3 minutes ago": `Intl.RelativeTimeFormat`
+  - wait times and storage size: `Intl.NumberFormat` units (`3 min`, `1.5 kB`)
+  - lists: `Intl.ListFormat`, e.g. the parts of the Fetch summary
+
+  Interslavic has no CLDR data, so `lacksCldrData()` sends these to the `cldr-*` messages of `isv-Latn/feedtubes.ftl` instead.
+
+- **Code:** `t(id, args)` returns the text in the active language. Several sentences are shown one per line (`setMessage` with an array) rather than joined into one string.
+- **Markup:** `sidebar.html` marks text with `data-i18n`, `data-i18n-placeholder`, `data-i18n-title` and `data-i18n-aria-label`. `applyTranslations()` sets them with `textContent`/`setAttribute` only, never HTML, and updates `<html lang>`. Multi-line hints use one `.hint__line` element per line instead of `<br>`.
+- **Stored and transmitted text is locale-independent:**
+  - **Errors:** adapters throw `LocalizedError`, which keeps its message id and arguments. The cache stores `CacheEntry.error` as `LocalizedText` (`{ id, args }`, possibly nested for a wrapped cause), and the message protocol sends errors the same way. The sidebar translates them when shown, so a language change applies to stored errors at once. Errors from outside FeedTubes (browser, network stack) keep their own text as the argument of `error-raw`.
+  - **Titles:** items keep the platform's own title. Stream cards carry `stream: "live" | "last"` and `game`, and the card adds the translated "LIVE:" / "Last stream:" label. Items without a title get the translated "Untitled video" when shown.
+  - **Schema:** `SCHEMA_VERSION` 2 marks this format. A cache from version 1, which held translated text, is dropped on load and refetched; subscriptions and settings are kept.
+- **Add-ons Manager:** the add-on description is translated through Firefox's own `_locales` (`en`, `ru`, `de`, Firefox's names) and follows the browser language.
+- **Not translated:** platform names, content from the platforms, and developer-only errors.
 
 ## Theming and accessibility
 

@@ -1,3 +1,5 @@
+import type { LanguageSetting, LocalizedText } from "./i18n/index.js";
+
 /** Domain model shared by the background script, the sidebar, and tests. */
 
 export type PlatformId =
@@ -42,6 +44,13 @@ export interface FeedItem {
   url: string;
   thumbnailUrl: string;
   publishedAt: string;
+  /**
+   * Status cards of streaming platforms: `live` for a stream on air, `last` for the most recent
+   * one. The card adds the translated "LIVE:" / "Last stream:" label; `title` stays as published.
+   */
+  stream?: "live" | "last";
+  /** Game or category of a stream card, as the platform names it. */
+  game?: string;
 }
 
 export type CacheErrorCode = "" | "permission-required" | "fetch-failed";
@@ -49,7 +58,8 @@ export type CacheErrorCode = "" | "permission-required" | "fetch-failed";
 export interface CacheEntry {
   fetchedAt: string;
   items: FeedItem[];
-  error: string;
+  /** Why the last fetch failed, as a message id, so it is translated when shown. */
+  error: LocalizedText | null;
   errorCode: CacheErrorCode;
 }
 
@@ -86,6 +96,8 @@ export interface UiSettings {
   platformFilter: string;
   /** `"all"` or a subscription key. */
   channelFilter: string;
+  /** Interface language; `"auto"` follows the browser. */
+  language: LanguageSetting;
 }
 
 /** Personal API keys for platforms that require one. Stored locally, never exported. */

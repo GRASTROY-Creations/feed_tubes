@@ -1,4 +1,4 @@
-import { errorMessage } from "./errors.js";
+import { toLocalizedText } from "./errors.js";
 import { getPlatform } from "./platforms/registry.js";
 import { defaultSettings } from "./storage.js";
 import { subscriptionKey } from "./subscriptions.js";
@@ -14,6 +14,7 @@ import type {
   PostJson,
   Subscription,
 } from "./types.js";
+import type { LocalizedText } from "./i18n/index.js";
 
 export interface RefreshDependencies {
   checkPermission: (subscription: Subscription) => Promise<boolean>;
@@ -123,7 +124,7 @@ function keptEntry(previous: Partial<CacheEntry>): CacheEntry {
   return {
     fetchedAt: previous.fetchedAt ?? "",
     items: previous.items ?? [],
-    error: previous.error ?? "",
+    error: previous.error ?? null,
     errorCode: previous.errorCode ?? "",
   };
 }
@@ -159,19 +160,19 @@ export async function refreshFeeds({
         return { key, entry: keptEntry(previous), throttledUntil };
       }
 
-      const failed = (error: string, errorCode: CacheEntry["errorCode"]): Outcome => ({
+      const failed = (error: LocalizedText, errorCode: CacheEntry["errorCode"]): Outcome => ({
         key,
         entry: { fetchedAt, items: previous?.items ?? [], error, errorCode },
       });
 
       try {
         if (!(await dependencies.checkPermission(subscription))) {
-          return failed("Host permission is required for this source.", "permission-required");
+          return failed({ id: "refresh-error-permission" }, "permission-required");
         }
         const items = await fetchSubscriptionItems(subscription, dependencies, feed, apiKeys);
-        return { key, entry: { fetchedAt, items, error: "", errorCode: "" } };
+        return { key, entry: { fetchedAt, items, error: null, errorCode: "" } };
       } catch (error) {
-        return failed(errorMessage(error, "Could not refresh this source."), "fetch-failed");
+        return failed(toLocalizedText(error, "refresh-error-generic"), "fetch-failed");
       }
     }
   );

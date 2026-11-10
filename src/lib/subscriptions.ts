@@ -16,6 +16,7 @@ import {
   parseHttpUrl,
   stripTrailingSlash,
 } from "./url.js";
+import { t, type MessageKey } from "./i18n/index.js";
 
 const MAX_NAME_LENGTH = 300;
 const MAX_URL_LENGTH = 4096;
@@ -292,35 +293,44 @@ const NORMALIZERS: Record<PlatformId, (input: SubscriptionInput) => DerivedField
   generic: normalizeFeed,
 };
 
+/** URL fields checked by `validate`, with the message naming each in errors. */
+const URL_FIELD_LABELS: readonly (readonly [
+  "instanceUrl" | "channelUrl" | "feedUrl",
+  MessageKey,
+])[] = [
+  ["instanceUrl", "field-instance-url"],
+  ["channelUrl", "field-channel-url"],
+  ["feedUrl", "field-feed-url"],
+];
+
 function validate(subscription: Subscription): string[] {
   const errors: string[] = [];
   const platform = getPlatform(subscription.platform);
 
   if (platform.requiresInstance && !subscription.instanceUrl) {
-    errors.push(`A ${platform.label} instance URL is required.`);
+    errors.push(t("validate-instance-required", { platform: platform.label }));
   }
 
   if (!subscription.channelId && !isFeedOnlyPlatform(subscription.platform)) {
-    errors.push("A channel ID or channel URL is required.");
+    errors.push(t("validate-channel-required"));
   }
 
   if (platform.requiresFeedUrl && !subscription.feedUrl) {
-    errors.push("This platform needs an RSS/Atom or bridge feed URL.");
+    errors.push(t("validate-feed-required"));
   }
 
-  const urlFields = ["instanceUrl", "channelUrl", "feedUrl"] as const;
-  for (const field of urlFields) {
+  for (const [field, labelId] of URL_FIELD_LABELS) {
     const value = subscription[field];
     if (value && !parseHttpUrl(value)) {
-      errors.push(`${field} must be a valid http(s) URL.`);
+      errors.push(t("validate-invalid-url", { field: t(labelId) }));
     }
     if (value.length > MAX_URL_LENGTH) {
-      errors.push(`${field} is too long.`);
+      errors.push(t("validate-url-too-long", { field: t(labelId) }));
     }
   }
 
   if (subscription.channelId.length > MAX_NAME_LENGTH) {
-    errors.push("The channel identifier is too long.");
+    errors.push(t("validate-channel-too-long"));
   }
 
   return errors;
@@ -333,7 +343,7 @@ export type NormalizeResult =
 export function normalizeSubscription(raw: RawSubscription): NormalizeResult {
   const platform = parsePlatform(raw);
   if (!platform) {
-    return { subscription: null, errors: ["Unknown or missing platform."] };
+    return { subscription: null, errors: [t("validate-unknown-platform")] };
   }
 
   const input: SubscriptionInput = {

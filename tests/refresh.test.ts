@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { translate } from "../src/lib/i18n/index.js";
 import { describeRefresh } from "../src/lib/refresh-report.js";
 import { refreshFeeds } from "../src/lib/refresh.js";
 import { subscriptionKey } from "../src/lib/subscriptions.js";
@@ -47,7 +48,9 @@ describe("refreshFeeds", () => {
 
     const entry = at(Object.values(result.cache), 0);
     expect(entry.errorCode).toBe("fetch-failed");
-    expect(entry.error).toContain("offline");
+    // Stored as a message id; errors from outside FeedTubes keep their own text, as data.
+    expect(entry.error?.id).toBe("youtube-both-failed");
+    expect(translate(entry.error ?? { id: "error-raw" })).toContain("offline");
   });
 
   it("ignores disabled subscriptions", async () => {
@@ -94,7 +97,7 @@ describe("refresh cooldown", () => {
     const kept = {
       fetchedAt: minutesAgo(2),
       items: [feedItem({ id: "kept" })],
-      error: "",
+      error: null,
       errorCode: "" as const,
     };
     const { result, fetches } = await refreshWith({ [subscriptionKey(first)]: kept });
@@ -123,13 +126,13 @@ describe("refresh cooldown", () => {
       [subscriptionKey(first)]: {
         fetchedAt: minutesAgo(1),
         items: [],
-        error: "x",
+        error: { id: "refresh-error-generic" as const },
         errorCode: "fetch-failed",
       },
       [subscriptionKey(second)]: {
         fetchedAt: minutesAgo(1),
         items: [],
-        error: "x",
+        error: { id: "refresh-error-permission" as const },
         errorCode: "permission-required",
       },
     });
@@ -143,13 +146,13 @@ describe("refresh cooldown", () => {
       [subscriptionKey(first)]: {
         fetchedAt: minutesAgo(1),
         items: [],
-        error: "old",
+        error: { id: "refresh-error-generic" },
         errorCode: "fetch-failed",
       },
     });
 
     expect(result.failures).toBe(1);
-    expect(at(Object.values(result.cache), 0).error).toBe("old");
+    expect(at(Object.values(result.cache), 0).error).toEqual({ id: "refresh-error-generic" });
   });
 });
 
@@ -172,7 +175,7 @@ describe("describeRefresh", () => {
       describeRefresh({ total: 4, failures: 1, throttled: 1, nextRefreshAt: inMinutes(4) }, NOW)
     ).toEqual({
       message:
-        "Refreshed 3 sources; 1 failed; 1 skipped (refreshed recently, next refresh in 4 min).",
+        "Refreshed 3 sources, 1 failed, and 1 skipped (refreshed recently, next refresh in 4 min).",
       error: true,
     });
   });

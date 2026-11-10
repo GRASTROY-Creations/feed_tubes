@@ -296,6 +296,11 @@ select {
   line-height: 1.4;
 }
 
+/* One translatable line of a multi-line hint (replaces <br>). */
+.hint__line {
+  display: block;
+}
+
 .feed-list {
   display: flex;
   flex-direction: column;

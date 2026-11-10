@@ -17,7 +17,8 @@ Node 24 is present as a compatibility runtime for Node-based tools, but project 
 - `src/` holds TypeScript plus static assets (`manifest.json`, HTML, CSS, icons). The browser cannot load it directly.
 - `build/` is the unpacked, loadable extension:
   - `scripts/build.ts` runs `tsc -p tsconfig.build.json`, which emits one `.js` per `.ts` module with the same layout.
-  - It then copies every non-`.ts` file from `src/`.
+  - It then copies every non-`.ts` file from `src/`, including the `.ftl` translations.
+  - It copies the ES module build of `@fluent/bundle`, the one runtime dependency, into `build/vendor/fluent-bundle/`, and rewrites the `"@fluent/bundle"` import in the compiled files to that path. The build fails if any other package import is left, since the browser cannot resolve it. `bun run dev` repeats the rewrite whenever `tsc --watch` re-emits a file.
 - `dist/` holds the packaged zip from `web-ext build`.
 
 Imports inside `.ts` files use `.js` specifiers (`import { x } from "./url.js"`). `tsc` emits them unchanged for the browser, and Bun resolves them to the `.ts` files in tests.
@@ -41,6 +42,8 @@ bun run start:librewolf # dev loop in LibreWolf with the project-local debug ove
 bun run build           # build:ext, then package build/ into dist/
 bun run bump:patch      # bump the version (also bump:minor, bump:major, bump <x.y.z>)
 bun run version:check   # fail if package.json and src/manifest.json disagree
+bun run i18n:keys       # regenerate src/lib/i18n/keys.ts from the English Fluent file
+bun run i18n:check      # fail if keys.ts is out of date (part of lint)
 ```
 
 Run a single tool directly with Bun:
@@ -162,11 +165,46 @@ The zip is written to `dist/`. Verify its layout:
 unzip -l dist/*.zip
 ```
 
-Expected root entries include `manifest.json`, `background/`, `lib/`, `sidebar/`, and `icons/`, all compiled `.js` plus static assets. No `.ts` sources, tests, documentation, or tooling may appear.
+Expected root entries include `manifest.json`, `background/`, `lib/`, `sidebar/`, `locales/`, `vendor/`, `_locales/` and `icons/`, all compiled `.js` plus static assets. No `.ts` sources, tests, documentation, or tooling may appear.
 
 ## Release checklist
 
 See [RELEASE.md](RELEASE.md). It covers versioning, the source archive AMO reviewers need, unlisted and listed signing, and installing from a file.
+
+## Internationalisation rules
+
+- **Language codes:** languages are named by their ISO 639-3 code (`eng`, `rus`, `deu`, `isv`) in documentation, settings, and translation file and directory names. A language written in more than one script gets its ISO 15924 script code appended: `isv-Latn`, `isv-Cyrl`.
+  - **Runtime only:** `Intl` and `<html lang>` need BCP 47 tags, which use the shortest ISO 639 code (`en`, not `eng`). `LANGUAGE_TAGS` in `src/lib/i18n/index.ts` is the one place that converts.
+  - **Exception, Firefox naming:** `src/_locales/{en,ru,de}/` and `"default_locale": "en"` in the manifest keep Firefox's own locale names, because Firefox accepts no others there. They only translate the Add-ons Manager description.
+- **Formatting:** dates, times, numbers, lists and plural forms are never formatted by hand. They go through CLDR data via `Intl`, in `src/lib/i18n/format.ts`, or through Fluent, which formats numeric arguments with `Intl.NumberFormat` and picks plural variants with `Intl.PluralRules`. Pass numbers to `t()` as numbers. Pass codes and identifiers (HTTP status, video ids) as strings, so they are never digit-grouped.
+  - **Exception, Interslavic:** CLDR has no Interslavic data, and `Intl` would silently fall back to English. For `isv` the same values are formatted by the `cldr-*` messages in `src/locales/isv-Latn/feedtubes.ftl`, with Russian plural rules and number formatting.
+- **Storage and messages between contexts:** values are locale-independent:
+  - timestamps are ISO 8601 strings in UTC (`toISOString()`)
+  - numbers are stored as numbers
+  - text is stored as a message id with arguments (`LocalizedText`), never as translated text, and translated only when shown
+  - currencies, should they ever appear, carry their ISO 4217 code
+
+## Translations
+
+Interface text lives in Fluent files, one per language: `src/locales/<ISO 639-3>/feedtubes.ftl` (see [ARCHITECTURE.md](ARCHITECTURE.md#interface-language)). `eng` is the source.
+
+**Adding or changing a message:**
+
+1. Add it to `src/locales/eng/feedtubes.ftl`. Ids are lowercase with dashes (`feed-empty-title`). Countable text uses a selector: `{ $count -> [one] … *[other] … }`.
+2. Run `bun run i18n:keys`. It regenerates `src/lib/i18n/keys.ts`, so `t()` accepts the new id. `bun run lint` fails while the file is out of date.
+3. Add the message to `rus`, `deu` and `isv-Latn`. Interslavic is written in Latin only; Cyrillic is generated.
+4. Use it as `t("my-message", { name })` in code, or `data-i18n="my-message"` (also `-placeholder`, `-title`, `-aria-label`) in `sidebar.html`.
+
+`tests/i18n.test.ts` checks that every file parses, defines exactly the English messages and uses the same `$variables`.
+
+**Adding a language:**
+
+1. Create `src/locales/<code>/feedtubes.ftl` with every English message.
+2. Add the code to `Language`, `SOURCE_LANGUAGES`, `LANGUAGE_TAGS`, `BUNDLE_LOCALES` and `LANGUAGE_OPTIONS` in `src/lib/i18n/index.ts`. If the browser can report it, add it to `BROWSER_LANGUAGES` too.
+3. If CLDR has no data for it, add its formatting as `cldr-*` messages and include it in `lacksCldrData()`.
+4. If Firefox has that locale, add `src/_locales/<Firefox locale>/messages.json` for the Add-ons Manager description.
+
+The Russian, German and Interslavic texts were drafted for this release; review by native speakers is welcome, Interslavic in particular.
 
 ## Adding future code
 

@@ -1,0 +1,3 @@
+[test]
+# Loads the Fluent translations once, so tests see English text like the extension would.
+preload = ["./tests/setup.ts"]

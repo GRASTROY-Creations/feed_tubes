@@ -92,6 +92,8 @@ export WEB_EXT_API_SECRET="<secret>"
 
    `git archive` leaves out everything ignored by git (`node_modules/`, `build/`, `dist/`). The archive contains `docs/RELEASE.md` and `package.json`, which give reviewers the build steps: install Bun 1.4.4, run `bun install`, run `bun run build:ext`, and the result is in `build/`.
 
+   **Third-party code:** `build/vendor/fluent-bundle/` is the unmodified ES module build of [`@fluent/bundle`](https://www.npmjs.com/package/@fluent/bundle) (Mozilla, Apache-2.0), at the version pinned in `bun.lock`. The build copies it from `node_modules/@fluent/bundle/esm/` and only rewrites the `"@fluent/bundle"` import in FeedTubes' own compiled files to point at it. In the AMO submission notes, name the package and version, so reviewers can compare the files with the published package.
+
 6. **Test the built package** in Firefox and LibreWolf (see [TESTING.md](TESTING.md)). You can use the [unsigned install](#unsigned-build-for-local-install) in Developer Edition or LibreWolf for this.
 
 ## Private signed build (unlisted)

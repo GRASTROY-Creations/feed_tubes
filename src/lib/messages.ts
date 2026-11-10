@@ -3,11 +3,14 @@
  * Requests go sidebar → background and get a typed response; events go background → sidebar.
  */
 import { isRecord } from "./guards.js";
+import type { LocalizedText } from "./i18n/index.js";
 import type { RefreshSummary } from "./refresh.js";
 
 export type RefreshReason = "manual" | "alarm";
 
-export type Result<T extends object = object> = ({ ok: true } & T) | { ok: false; error: string };
+/** Errors cross extension contexts untranslated; the sidebar translates them when shown. */
+export type Result<T extends object = object> =
+  ({ ok: true } & T) | { ok: false; error: LocalizedText };
 
 /** Each request type and the response the background sends back. */
 export interface RequestResponses {
@@ -39,7 +42,7 @@ export interface FeedUpdatedEvent {
   reason: RefreshReason;
   total?: number;
   failures?: number;
-  error?: string;
+  error?: LocalizedText;
 }
 
 export function isFeedUpdatedEvent(message: unknown): message is FeedUpdatedEvent {

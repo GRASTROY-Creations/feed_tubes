@@ -1,3 +1,4 @@
+import { t } from "../i18n/index.js";
 import type { InstanceKind, PlatformAdapter, PlatformId, PlatformKind } from "../types.js";
 import { DAILYMOTION_ORIGIN, dailymotionAdapter } from "./dailymotion.js";
 import { DTUBE_API, DTUBE_ORIGIN, dtubeAdapter } from "./dtube.js";
@@ -23,8 +24,6 @@ export interface PlatformDefinition {
   readonly requiresFeedUrl: boolean;
   /** Kind of configured instance offered in the subscription form, if any. */
   readonly instanceKind: InstanceKind | null;
-  /** Placeholder for the channel input of the subscription form. */
-  readonly placeholder: string;
   /** Minimum time between successful fetches, when the platform asks for more than the default. */
   readonly refreshCooldownMs?: number;
   /** An RSS bridge feed URL may be given instead of the platform's own API (optional). */
@@ -34,8 +33,7 @@ export interface PlatformDefinition {
 function nativePlatform(
   label: string,
   origin: string,
-  adapter: PlatformAdapter,
-  placeholder: string
+  adapter: PlatformAdapter
 ): PlatformDefinition {
   return {
     label,
@@ -46,15 +44,13 @@ function nativePlatform(
     requiresInstance: false,
     requiresFeedUrl: false,
     instanceKind: null,
-    placeholder,
   };
 }
 
 function feedPlatform(
   label: string,
   kind: Exclude<PlatformKind, "native">,
-  instanceKind: InstanceKind,
-  placeholder: string
+  instanceKind: InstanceKind
 ): PlatformDefinition {
   return {
     label,
@@ -65,12 +61,11 @@ function feedPlatform(
     requiresInstance: false,
     requiresFeedUrl: true,
     instanceKind,
-    placeholder,
   };
 }
 
 export const PLATFORMS = {
-  youtube: nativePlatform("YouTube", YOUTUBE_ORIGIN, youtubeAdapter, "UC… / channel URL / @handle"),
+  youtube: nativePlatform("YouTube", YOUTUBE_ORIGIN, youtubeAdapter),
   peertube: {
     label: "PeerTube",
     kind: "native",
@@ -80,42 +75,31 @@ export const PLATFORMS = {
     requiresInstance: true,
     requiresFeedUrl: false,
     instanceKind: "peertube",
-    placeholder: "Channel handle or /c/ URL",
   },
-  odysee: nativePlatform("Odysee", ODYSEE_ORIGIN, odyseeAdapter, "@name:claimid"),
-  rutube: nativePlatform("Rutube", RUTUBE_ORIGIN, rutubeAdapter, "Numeric channel ID or URL"),
-  dailymotion: nativePlatform(
-    "Dailymotion",
-    DAILYMOTION_ORIGIN,
-    dailymotionAdapter,
-    "Username or channel URL"
-  ),
+  odysee: nativePlatform("Odysee", ODYSEE_ORIGIN, odyseeAdapter),
+  rutube: nativePlatform("Rutube", RUTUBE_ORIGIN, rutubeAdapter),
+  dailymotion: nativePlatform("Dailymotion", DAILYMOTION_ORIGIN, dailymotionAdapter),
   dtube: {
-    ...nativePlatform("D.Tube", DTUBE_ORIGIN, dtubeAdapter, "Channel name or d.tube/channel/… URL"),
+    ...nativePlatform("D.Tube", DTUBE_ORIGIN, dtubeAdapter),
     // Videos are read from the API host, not the website.
     permissionOrigin: `${DTUBE_API}/*`,
   },
   pixabay: {
-    ...nativePlatform("Pixabay", PIXABAY_ORIGIN, pixabayAdapter, "Contributor name or profile URL"),
+    ...nativePlatform("Pixabay", PIXABAY_ORIGIN, pixabayAdapter),
     // Pixabay's API terms ask for results to be cached for 24 hours.
     refreshCooldownMs: PIXABAY_CACHE_MS,
   },
   twitch: {
-    ...nativePlatform("Twitch", TWITCH_ORIGIN, twitchAdapter, "Channel name or twitch.tv/… URL"),
+    ...nativePlatform("Twitch", TWITCH_ORIGIN, twitchAdapter),
     // Helix API host; a subscription with a bridge feed URL uses the feed's host instead.
     permissionOrigin: "https://api.twitch.tv/*",
     allowsFeedUrl: true,
   },
-  goodgame: nativePlatform(
-    "GoodGame",
-    GOODGAME_ORIGIN,
-    goodgameAdapter,
-    "Channel name or goodgame.ru/… URL"
-  ),
-  vkvideo: feedPlatform("VK Video", "bridge", "vk", "Optional channel ID"),
-  bilibili: feedPlatform("Bilibili", "bridge", "bilibili", "Optional UID"),
-  rumble: feedPlatform("Rumble", "bridge", "rumble", "Optional channel slug"),
-  generic: feedPlatform("RSS / Atom", "generic", "generic", "Optional channel ID"),
+  goodgame: nativePlatform("GoodGame", GOODGAME_ORIGIN, goodgameAdapter),
+  vkvideo: feedPlatform("VK Video", "bridge", "vk"),
+  bilibili: feedPlatform("Bilibili", "bridge", "bilibili"),
+  rumble: feedPlatform("Rumble", "bridge", "rumble"),
+  generic: feedPlatform("RSS / Atom", "generic", "generic"),
 } as const satisfies Record<PlatformId, PlatformDefinition>;
 
 export const PLATFORM_IDS = Object.keys(PLATFORMS) as PlatformId[];
@@ -137,17 +121,27 @@ export function isFeedOnlyPlatform(platform: string): boolean {
   return getPlatform(platform).kind !== "native";
 }
 
-export const INSTANCE_KIND_LABELS: Readonly<Record<InstanceKind, string>> = {
-  peertube: "PeerTube",
-  rsshub: "RSSHub",
-  vk: "VK bridge",
-  bilibili: "Bilibili bridge",
-  rumble: "Rumble bridge",
-  generic: "Generic RSS",
-};
+/** Placeholder text for the subscription form channel input, in the interface language. */
+export function channelPlaceholder(platform: PlatformId): string {
+  return t(`placeholder-${platform}`);
+}
+
+export const INSTANCE_KINDS: readonly InstanceKind[] = [
+  "peertube",
+  "rsshub",
+  "vk",
+  "bilibili",
+  "rumble",
+  "generic",
+];
+
+/** Display name of an instance kind, in the interface language. */
+export function instanceKindLabel(kind: InstanceKind): string {
+  return t(`inst-kind-${kind}`);
+}
 
 export function isInstanceKind(value: unknown): value is InstanceKind {
-  return typeof value === "string" && Object.hasOwn(INSTANCE_KIND_LABELS, value);
+  return INSTANCE_KINDS.includes(value as InstanceKind);
 }
 
 /** Instance kinds a subscription of `kind` may use: bridges also accept RSSHub bases. */

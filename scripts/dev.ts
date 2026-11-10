@@ -1,14 +1,16 @@
 import { watch } from "node:fs";
 import { stat } from "node:fs/promises";
-import { join } from "node:path";
+import { extname, join } from "node:path";
 import { hasFirefoxArg, resolveFirefoxBinary } from "./browser-binary.js";
 import {
+  BUILD_DIR,
   SOURCE_DIR,
   buildExtension,
   bunx,
   compile,
   copyAsset,
   isStaticAsset,
+  rewriteVendorImports,
 } from "./extension-build.js";
 
 /**
@@ -39,12 +41,28 @@ export async function startDevLoop(webExtArgs: string[]): Promise<void> {
     }
   });
 
+  // `tsc --watch` re-emits bare package imports; point them at build/vendor/ again.
+  const buildWatcher = watch(BUILD_DIR, { recursive: true }, (_event, filename) => {
+    if (filename && extname(filename) === ".js" && !filename.startsWith("vendor")) {
+      rewriteVendorImports(join(BUILD_DIR, filename))
+        .then((unresolved) => {
+          if (unresolved.length > 0) {
+            console.warn(`${filename} imports ${unresolved.join(", ")}, which is not vendored.`);
+          }
+        })
+        .catch(() => {
+          // The file was replaced or removed mid-write; the next change event handles it.
+        });
+    }
+  });
+
   const typescriptWatch = compile(["--watch", "--preserveWatchOutput"]);
 
   try {
     await Promise.race([typescriptWatch, bunx("web-ext", ["run", ...webExtArgs])]);
   } finally {
     watcher.close();
+    buildWatcher.close();
   }
 }
 

@@ -1,3 +1,4 @@
+import { LocalizedError } from "../errors.js";
 import { asArray, asRecord, asString } from "../guards.js";
 import { toIsoString } from "../time.js";
 import type { AdapterContext, FeedItem, PlatformAdapter, Subscription } from "../types.js";
@@ -30,7 +31,7 @@ async function fetchItems(
   context: AdapterContext
 ): Promise<FeedItem[]> {
   if (!parseHttpUrl(subscription.instanceUrl)) {
-    throw new Error("This PeerTube subscription has no valid instance URL.");
+    throw new LocalizedError("peertube-no-instance");
   }
 
   const base = stripTrailingSlash(subscription.instanceUrl);

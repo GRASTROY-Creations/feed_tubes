@@ -3,6 +3,7 @@ import type { RefreshSettings } from "../../../lib/types.js";
 import type { AppContext } from "../../app-context.js";
 import { showToast } from "../../components/toast.js";
 import type { SettingsSection } from "./shared.js";
+import { t } from "../../../lib/i18n/index.js";
 
 export function initRefreshSection(app: AppContext): SettingsSection {
   const interval = getElement("refresh-interval", HTMLSelectElement);
@@ -15,13 +16,16 @@ export function initRefreshSection(app: AppContext): SettingsSection {
   }
 
   interval.addEventListener("change", () => {
-    void updateRefresh({ intervalMinutes: Number(interval.value) }, "Refresh schedule updated.");
+    void updateRefresh(
+      { intervalMinutes: Number(interval.value) },
+      t("settings-fetching-schedule-updated")
+    );
   });
 
   enabled.addEventListener("change", () => {
     void updateRefresh(
       { enabled: enabled.checked },
-      enabled.checked ? "Background refresh enabled." : "Background refresh disabled."
+      enabled.checked ? t("settings-fetching-background-on") : t("settings-fetching-background-off")
     );
   });
 

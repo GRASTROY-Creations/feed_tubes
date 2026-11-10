@@ -122,11 +122,13 @@ describe("twitchAdapter (Helix)", () => {
     });
 
     expect(items.map((item) => item.title)).toEqual([
-      "LIVE: Live now (Just Chatting)",
+      "Live now",
       "Past broadcast",
       "Still processing",
     ]);
     expect(at(items, 0)).toMatchObject({
+      stream: "live",
+      game: "Just Chatting",
       url: "https://www.twitch.tv/twitch",
       thumbnailUrl: "https://static-cdn.jtvnw.net/previews-ttv/live_user_twitch-320x180.jpg",
     });

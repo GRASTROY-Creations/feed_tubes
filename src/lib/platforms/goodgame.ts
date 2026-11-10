@@ -10,7 +10,7 @@
  * - Offline: "Last stream: <title>", dated when the channel was last online.
  * The card keeps the same id, so each refresh updates it instead of adding a new one.
  */
-import { HttpError } from "../errors.js";
+import { HttpError, LocalizedError } from "../errors.js";
 import { asRecord, asString } from "../guards.js";
 import { toIsoString } from "../time.js";
 import type { AdapterContext, FeedItem, PlatformAdapter, Subscription } from "../types.js";
@@ -40,12 +40,13 @@ export function toStatusItem(
 ): FeedItem | null {
   const channel = asString(asRecord(stream.streamer).username) || subscription.channelId;
   const online = stream.online === true;
-  const title = asString(stream.title) || asString(stream.stream_title) || "Untitled stream";
-  const game = asString(stream.game);
 
   return createFeedItem(subscription, {
     id: `goodgame:${channel.toLowerCase()}`,
-    title: `${online ? "LIVE" : "Last stream"}: ${title}${game ? ` (${game})` : ""}`,
+    title: asString(stream.title) || asString(stream.stream_title),
+    stream: online ? "live" : "last",
+    game: asString(stream.game),
+    allowUntitled: true,
     url: asString(stream.link) || goodgameChannelUrl(channel),
     thumbnailUrl: online
       ? imageUrl(stream.streamPreview) || imageUrl(stream.preview)
@@ -60,10 +61,10 @@ async function fetchItems(
   context: AdapterContext
 ): Promise<FeedItem[]> {
   if (!subscription.channelId) {
-    throw new Error("This goodgame.ru subscription has no channel name.");
+    throw new LocalizedError("goodgame-no-name");
   }
 
-  const notFound = new Error(`goodgame.ru has no channel named "${subscription.channelId}".`);
+  const notFound = new LocalizedError("goodgame-not-found", { name: subscription.channelId });
   let payload: unknown;
   try {
     payload = await context.fetchJson(

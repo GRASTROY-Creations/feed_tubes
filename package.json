@@ -7,7 +7,7 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "build:ext": "bun run scripts/build.ts",
-    "lint": "bun run version:check && bun run typecheck && bun run lint:ts && bun run format:check && bun run lint:webext",
+    "lint": "bun run version:check && bun run i18n:check && bun run typecheck && bun run lint:ts && bun run format:check && bun run lint:webext",
     "lint:webext": "bun run build:ext && web-ext lint",
     "lint:ts": "eslint .",
     "format": "prettier --write .",
@@ -21,7 +21,9 @@
     "bump:patch": "bun run scripts/version.ts patch",
     "bump:minor": "bun run scripts/version.ts minor",
     "bump:major": "bun run scripts/version.ts major",
-    "version:check": "bun run scripts/version.ts check"
+    "version:check": "bun run scripts/version.ts check",
+    "i18n:keys": "bun run scripts/i18n-keys.ts",
+    "i18n:check": "bun run scripts/i18n-keys.ts check"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -36,5 +38,8 @@
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.2",
     "web-ext": "^10.8.0"
+  },
+  "dependencies": {
+    "@fluent/bundle": "^0.19.1"
   }
 }

@@ -1,3 +1,4 @@
+import { LocalizedError } from "../errors.js";
 /**
  * D.Tube (https://d.tube) adapter, using the JSON API that the d.tube website itself calls:
  *
@@ -55,7 +56,7 @@ async function channelUuid(username: string, context: AdapterContext): Promise<s
   );
   const id = asString(channel.id);
   if (!UUID_PATTERN.test(id)) {
-    throw new Error(`D.Tube has no channel named "${username}".`);
+    throw new LocalizedError("dtube-not-found", { name: username });
   }
   return id;
 }
@@ -79,7 +80,7 @@ async function fetchItems(
   context: AdapterContext
 ): Promise<FeedItem[]> {
   if (!subscription.channelId) {
-    throw new Error("This D.Tube subscription has no channel name.");
+    throw new LocalizedError("dtube-no-name");
   }
 
   const channel = await channelUuid(subscription.channelId, context);

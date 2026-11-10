@@ -10,7 +10,12 @@
   <body>
     <main class="app">
       <div class="tab-bar">
-        <nav class="tabs" role="tablist" aria-label="FeedTubes views">
+        <nav
+          class="tabs"
+          role="tablist"
+          aria-label="FeedTubes views"
+          data-i18n-aria-label="tabs-label"
+        >
           <button
             id="tab-feed"
             class="tab"
@@ -19,6 +24,7 @@
             aria-selected="true"
             aria-controls="panel-feed"
             tabindex="0"
+            data-i18n="tabs-feed"
           >
             Feed
           </button>
@@ -30,11 +36,17 @@
             aria-selected="false"
             aria-controls="panel-settings"
             tabindex="-1"
+            data-i18n="tabs-settings"
           >
             Settings
           </button>
         </nav>
-        <button id="refresh-button" class="button button--primary button--compact" type="button">
+        <button
+          id="refresh-button"
+          class="button button--primary button--compact"
+          type="button"
+          data-i18n="app-fetch"
+        >
           Fetch
         </button>
       </div>
@@ -42,22 +54,28 @@
       <section id="panel-feed" class="panel" role="tabpanel" aria-labelledby="tab-feed">
         <div class="feed-toolbar">
           <label class="field field--compact">
-            <span class="visually-hidden">Platform</span>
+            <span class="visually-hidden" data-i18n="common-platform">Platform</span>
             <select id="platform-filter">
-              <option value="all">All platforms</option>
+              <option value="all" data-i18n="common-all-platforms">All platforms</option>
             </select>
           </label>
           <label class="field field--compact">
-            <span class="visually-hidden">Channel</span>
+            <span class="visually-hidden" data-i18n="common-channel">Channel</span>
             <select id="channel-filter">
-              <option value="all">All channels</option>
+              <option value="all" data-i18n="common-all-channels">All channels</option>
             </select>
           </label>
         </div>
 
         <div id="feed-error" class="banner banner--error" role="status" hidden>
           <span id="feed-error-text"></span>
-          <button id="grant-permissions" class="button button--compact" type="button" hidden>
+          <button
+            id="grant-permissions"
+            class="button button--compact"
+            type="button"
+            hidden
+            data-i18n="feed-grant-access"
+          >
             Grant access
           </button>
         </div>
@@ -67,12 +85,29 @@
         <div id="feed-list" class="feed-list" aria-live="polite"></div>
 
         <div id="feed-empty" class="empty-state" hidden>
-          <h2 id="feed-empty-title">No subscriptions yet</h2>
-          <p id="feed-empty-text">Add a channel or import a subscription file.</p>
-          <button id="feed-empty-action" class="button" type="button">Open settings</button>
+          <h2 id="feed-empty-title" data-i18n="feed-empty-no-subscriptions-title">
+            No subscriptions yet
+          </h2>
+          <p id="feed-empty-text" data-i18n="feed-empty-no-subscriptions-text">
+            Add a channel or import a subscription file.
+          </p>
+          <button
+            id="feed-empty-action"
+            class="button"
+            type="button"
+            data-i18n="feed-empty-no-subscriptions-button"
+          >
+            Open settings
+          </button>
         </div>
 
-        <button id="load-more" class="button button--wide button--compact" type="button" hidden>
+        <button
+          id="load-more"
+          class="button button--wide button--compact"
+          type="button"
+          hidden
+          data-i18n="feed-load-more"
+        >
           Load more
         </button>
         <p id="last-updated" class="hint hint--small"></p>
@@ -86,73 +121,109 @@
         hidden
       >
         <details class="settings-section">
-          <summary class="settings-section__title">General</summary>
+          <summary class="settings-section__title" data-i18n="settings-general">General</summary>
           <div class="settings-section__body">
-            <h3 class="settings-section__subtitle">Automatic Fetching</h3>
             <label class="field">
-              <span>Fetching interval</span>
+              <span data-i18n="settings-language">Language</span>
+              <select id="language-select"></select>
+            </label>
+
+            <hr class="divider" />
+
+            <h3 class="settings-section__subtitle" data-i18n="settings-fetching-title">
+              Automatic Fetching
+            </h3>
+            <label class="field">
+              <span data-i18n="settings-fetching-interval">Fetching interval</span>
               <select id="refresh-interval">
-                <option value="60">Every 1 hour</option>
-                <option value="180">Every 3 hours</option>
-                <option value="360">Every 6 hours</option>
+                <option value="60" data-i18n="settings-fetching-every1h">Every 1 hour</option>
+                <option value="180" data-i18n="settings-fetching-every3h">Every 3 hours</option>
+                <option value="360" data-i18n="settings-fetching-every6h">Every 6 hours</option>
               </select>
             </label>
             <label class="checkbox">
               <input id="refresh-enabled" type="checkbox" />
-              <span>Fetch feed in the background</span>
+              <span data-i18n="settings-fetching-background">Fetch feed in the background</span>
             </label>
-            <p class="hint">*Feed is fetched on sidebar opening if cache is stale.</p>
+            <p class="hint" data-i18n="settings-fetching-hint">
+              *Feed is fetched on sidebar opening if cache is stale.
+            </p>
 
             <hr class="divider" />
 
-            <h3 class="settings-section__subtitle">Data &amp; About</h3>
+            <h3 class="settings-section__subtitle" data-i18n="settings-data-title">
+              Data &amp; About
+            </h3>
             <p id="storage-usage" class="hint"></p>
             <div class="form-actions">
-              <button id="clear-cache" class="button" type="button">Clear cache</button>
-              <button id="reset-data" class="button button--danger" type="button">
+              <button
+                id="clear-cache"
+                class="button"
+                type="button"
+                data-i18n="settings-data-clear-cache"
+              >
+                Clear cache
+              </button>
+              <button
+                id="reset-data"
+                class="button button--danger"
+                type="button"
+                data-i18n="settings-data-reset"
+              >
                 Reset all data
               </button>
             </div>
             <p class="hint">
-              *Clearing Cache does not remove subscriptions or settings<br />
-              *Feed requests go directly to the platforms and bridge services you configure.<br />
-              *FeedTubes does not collect data.
+              <span class="hint__line" data-i18n="settings-data-hint-cache"
+                >*Clearing Cache does not remove subscriptions or settings</span
+              >
+              <span class="hint__line" data-i18n="settings-data-hint-requests"
+                >*Feed requests go directly to the platforms and bridge services you
+                configure.</span
+              >
+              <span class="hint__line" data-i18n="settings-data-hint-privacy"
+                >*FeedTubes does not collect data.</span
+              >
             </p>
           </div>
         </details>
 
         <details id="settings-subscriptions" class="settings-section">
-          <summary class="settings-section__title">Subscriptions</summary>
+          <summary class="settings-section__title" data-i18n="settings-subscriptions">
+            Subscriptions
+          </summary>
           <div class="settings-section__body">
             <form id="subscription-form" class="form">
               <label class="field">
-                <span>Platform</span>
+                <span data-i18n="common-platform">Platform</span>
                 <select id="subscription-platform"></select>
               </label>
               <label id="subscription-instance-row" class="field" hidden>
-                <span>Instance</span>
+                <span data-i18n="subs-instance">Instance</span>
                 <select id="subscription-instance"></select>
               </label>
               <label class="field">
-                <span>Channel ID, URL, or handle</span>
+                <span data-i18n="subs-channel">Channel ID, URL, or handle</span>
                 <input
                   id="subscription-channel"
                   type="text"
                   maxlength="2048"
                   placeholder="UC… / channel URL / @handle"
+                  data-i18n-placeholder="placeholder-youtube"
                 />
               </label>
               <label class="field">
-                <span>Alias</span>
+                <span data-i18n="subs-alias">Alias</span>
                 <input
                   id="subscription-alias"
                   type="text"
                   maxlength="300"
                   placeholder="Optional, shown instead of the channel name"
+                  data-i18n-placeholder="subs-alias-placeholder"
                 />
               </label>
               <label id="subscription-feed-row" class="field" hidden>
-                <span id="subscription-feed-label">Feed URL</span>
+                <span id="subscription-feed-label" data-i18n="subs-feed-url">Feed URL</span>
                 <input
                   id="subscription-feed-url"
                   type="url"
@@ -161,34 +232,62 @@
                 />
               </label>
               <div class="form-actions form-actions--end">
-                <button id="subscription-cancel" class="button button--quiet" type="button" hidden>
+                <button
+                  id="subscription-cancel"
+                  class="button button--quiet"
+                  type="button"
+                  hidden
+                  data-i18n="common-cancel"
+                >
                   Cancel
                 </button>
-                <button class="button button--primary" type="submit">Add</button>
+                <button class="button button--primary" type="submit" data-i18n="common-add">
+                  Add
+                </button>
               </div>
               <p id="subscription-error" class="banner banner--error" role="alert" hidden></p>
             </form>
 
             <div class="toolbar">
-              <button id="enable-all" class="button button--compact" type="button">
+              <button
+                id="enable-all"
+                class="button button--compact"
+                type="button"
+                data-i18n="subs-enable-all"
+              >
                 Enable all
               </button>
-              <button id="disable-all" class="button button--compact" type="button">
+              <button
+                id="disable-all"
+                class="button button--compact"
+                type="button"
+                data-i18n="subs-disable-all"
+              >
                 Disable all
               </button>
-              <button id="delete-disabled" class="button button--compact" type="button">
+              <button
+                id="delete-disabled"
+                class="button button--compact"
+                type="button"
+                data-i18n="subs-delete-disabled"
+              >
                 Delete disabled
               </button>
             </div>
             <div class="toolbar">
               <label class="field field--inline">
-                <span>Search</span>
-                <input id="subscription-search" type="search" placeholder="Channel name" />
+                <span data-i18n="common-search">Search</span>
+                <input
+                  id="subscription-search"
+                  type="search"
+                  placeholder="Channel name"
+                  data-i18n-placeholder="subs-search-placeholder"
+                />
               </label>
               <label class="field field--inline">
-                <span>Platform</span>
+                <span data-i18n="common-platform">Platform</span>
                 <select id="subscription-filter">
-                  <option value="all">All platforms</option>
+                  <option value="all" data-i18n="common-all-platforms">All platforms</option>
                 </select>
               </label>
             </div>
@@ -197,29 +296,37 @@
         </details>
 
         <details id="settings-instances" class="settings-section">
-          <summary class="settings-section__title">Instances</summary>
+          <summary class="settings-section__title" data-i18n="settings-instances">
+            Instances
+          </summary>
           <div class="settings-section__body">
-            <p class="hint">
+            <p class="hint" data-i18n="inst-hint">
               PeerTube instances and bridge bases. Each subscription stores its own instance.
             </p>
             <form id="instance-form" class="form">
               <label class="field">
-                <span>Kind</span>
+                <span data-i18n="inst-kind">Kind</span>
                 <select id="instance-kind">
-                  <option value="peertube">PeerTube</option>
-                  <option value="rsshub">RSSHub</option>
-                  <option value="vk">VK bridge</option>
-                  <option value="bilibili">Bilibili bridge</option>
-                  <option value="rumble">Rumble bridge</option>
-                  <option value="generic">Generic RSS</option>
+                  <option value="peertube" data-i18n="inst-kind-peertube">PeerTube</option>
+                  <option value="rsshub" data-i18n="inst-kind-rsshub">RSSHub</option>
+                  <option value="vk" data-i18n="inst-kind-vk">VK bridge</option>
+                  <option value="bilibili" data-i18n="inst-kind-bilibili">Bilibili bridge</option>
+                  <option value="rumble" data-i18n="inst-kind-rumble">Rumble bridge</option>
+                  <option value="generic" data-i18n="inst-kind-generic">Generic RSS</option>
                 </select>
               </label>
               <label class="field">
-                <span>Label</span>
-                <input id="instance-label" type="text" maxlength="120" placeholder="My instance" />
+                <span data-i18n="inst-label">Label</span>
+                <input
+                  id="instance-label"
+                  type="text"
+                  maxlength="120"
+                  placeholder="My instance"
+                  data-i18n-placeholder="inst-label-placeholder"
+                />
               </label>
               <label class="field">
-                <span>Base URL</span>
+                <span data-i18n="inst-base-url">Base URL</span>
                 <input
                   id="instance-url"
                   type="url"
@@ -234,15 +341,26 @@
                   class="button"
                   type="button"
                   title="Test Connection"
+                  data-i18n-title="inst-test-tooltip"
                   aria-label="Test Connection"
+                  data-i18n-aria-label="inst-test-tooltip"
+                  data-i18n="inst-test"
                 >
                   Test
                 </button>
                 <div class="form-actions__end">
-                  <button id="instance-cancel" class="button button--quiet" type="button" hidden>
+                  <button
+                    id="instance-cancel"
+                    class="button button--quiet"
+                    type="button"
+                    hidden
+                    data-i18n="common-cancel"
+                  >
                     Cancel
                   </button>
-                  <button class="button button--primary" type="submit">Add</button>
+                  <button class="button button--primary" type="submit" data-i18n="common-add">
+                    Add
+                  </button>
                 </div>
               </div>
             </form>
@@ -250,17 +368,22 @@
 
             <div class="toolbar">
               <label class="field field--inline">
-                <span>Search</span>
-                <input id="instance-search" type="search" placeholder="Label, kind, or URL" />
+                <span data-i18n="common-search">Search</span>
+                <input
+                  id="instance-search"
+                  type="search"
+                  placeholder="Label, kind, or URL"
+                  data-i18n-placeholder="inst-search-placeholder"
+                />
               </label>
             </div>
             <div id="instance-list" class="list list--scroll"></div>
 
             <hr class="divider" />
 
-            <h3 class="settings-section__subtitle">API Keys</h3>
+            <h3 class="settings-section__subtitle" data-i18n="keys-title">API Keys</h3>
             <label class="field">
-              <span>Pixabay API key</span>
+              <span data-i18n="keys-pixabay">Pixabay API key</span>
               <input
                 id="pixabay-api-key"
                 type="password"
@@ -268,15 +391,16 @@
                 spellcheck="false"
                 maxlength="100"
                 placeholder="Paste your key"
+                data-i18n-placeholder="keys-pixabay-placeholder"
               />
             </label>
-            <p class="hint">
+            <p class="hint" data-i18n="keys-pixabay-hint">
               *Free key from pixabay.com/api/docs (Pixabay account needed). Stored only in this
               browser and never included in exports.
             </p>
 
             <label class="field">
-              <span>Twitch Client ID</span>
+              <span data-i18n="keys-twitch-client-id">Twitch Client ID</span>
               <input
                 id="twitch-client-id"
                 type="text"
@@ -284,47 +408,80 @@
                 spellcheck="false"
                 maxlength="100"
                 placeholder="From your app at dev.twitch.tv"
+                data-i18n-placeholder="keys-twitch-client-id-placeholder"
               />
             </label>
             <label class="field">
-              <span>Twitch OAuth Redirect URL (paste into your Twitch app)</span>
+              <span data-i18n="keys-twitch-redirect"
+                >Twitch OAuth Redirect URL (paste into your Twitch app)</span
+              >
               <input id="twitch-redirect-url" type="text" readonly />
             </label>
             <div class="form-actions">
-              <button id="twitch-sign-in" class="button button--primary" type="button">
+              <button
+                id="twitch-sign-in"
+                class="button button--primary"
+                type="button"
+                data-i18n="keys-twitch-sign-in"
+              >
                 Sign in with Twitch
               </button>
-              <button id="twitch-sign-out" class="button" type="button" hidden>Sign out</button>
+              <button
+                id="twitch-sign-out"
+                class="button"
+                type="button"
+                hidden
+                data-i18n="keys-twitch-sign-out"
+              >
+                Sign out
+              </button>
             </div>
             <p id="twitch-status" class="hint" role="status"></p>
             <p class="hint">
-              *Register a free application at dev.twitch.tv, category "Website Integration", with
-              the redirect URL above. <br />*Twitch channels with an RSS bridge feed URL work
-              without signing in.
+              <span class="hint__line" data-i18n="keys-twitch-hint-register"
+                >*Register a free application at dev.twitch.tv, category "Website Integration", with
+                the redirect URL above.</span
+              >
+              <span class="hint__line" data-i18n="keys-twitch-hint-bridge"
+                >*Twitch channels with an RSS bridge feed URL work without signing in.</span
+              >
             </p>
           </div>
         </details>
 
         <details id="settings-transfer" class="settings-section">
-          <summary class="settings-section__title">Import / Export</summary>
+          <summary class="settings-section__title" data-i18n="settings-transfer">
+            Import / Export
+          </summary>
           <div class="settings-section__body">
-            <p class="hint">
+            <p class="hint" data-i18n="transfer-hint">
               Import FeedTubes CSV/JSON, YouTube Takeout/FreeTube CSV, FreeTube .db, NewPipe JSON,
               or OPML.
             </p>
             <label class="field">
-              <span>Subscription file</span>
+              <span data-i18n="transfer-file">Subscription file</span>
               <input id="import-file" type="file" accept=".csv,.json,.db,.opml,.xml" />
             </label>
             <label class="field">
-              <span>Merge mode</span>
+              <span data-i18n="transfer-mode">Merge mode</span>
               <select id="import-mode">
-                <option value="merge">Merge — Add and Update</option>
-                <option value="skip">Fill Up — Skip Duplicates</option>
-                <option value="replace">Replace — Remove All Current Subscriptions</option>
+                <option value="merge" data-i18n="transfer-mode-merge">
+                  Merge — Add and Update
+                </option>
+                <option value="skip" data-i18n="transfer-mode-skip">
+                  Fill Up — Skip Duplicates
+                </option>
+                <option value="replace" data-i18n="transfer-mode-replace">
+                  Replace — Remove All Current Subscriptions
+                </option>
               </select>
             </label>
-            <button id="import-button" class="button button--primary" type="button">
+            <button
+              id="import-button"
+              class="button button--primary"
+              type="button"
+              data-i18n="transfer-import"
+            >
               Import
             </button>
             <p id="import-report" class="hint" role="status"></p>
@@ -332,22 +489,27 @@
             <hr class="divider" />
 
             <label class="field">
-              <span>Export format</span>
+              <span data-i18n="transfer-export-format">Export format</span>
               <select id="export-format"></select>
             </label>
             <label class="field">
-              <span>Filter</span>
+              <span data-i18n="transfer-filter">Filter</span>
               <select id="export-scope">
-                <option value="all">All Subscriptions</option>
-                <option value="enabled">Enabled only</option>
+                <option value="all" data-i18n="transfer-filter-all">All Subscriptions</option>
+                <option value="enabled" data-i18n="transfer-filter-enabled">Enabled only</option>
               </select>
             </label>
-            <button id="export-button" class="button" type="button">Download file</button>
+            <button id="export-button" class="button" type="button" data-i18n="transfer-download">
+              Download file
+            </button>
           </div>
         </details>
 
         <!-- Not a section: always shown at the bottom of the Settings tab. -->
-        <footer class="settings-footer">Version <span id="version"></span> - GRASTROY Creations</footer>
+        <footer class="settings-footer">
+          <span data-i18n="settings-version">Version</span> <span id="version"></span> - GRASTROY
+          Creations
+        </footer>
       </section>
     </main>
 

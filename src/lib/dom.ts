@@ -81,13 +81,24 @@ export function setText(element: HTMLElement, value: string): void {
 }
 
 /** Shows `message` in `element`, hiding it when the message is empty. */
+/**
+ * Shows a message, or hides the element for `""`. Several sentences are shown one per line
+ * rather than joined into one string, which would need language-specific punctuation.
+ */
 export function setMessage(
   element: HTMLElement,
-  message: string,
+  message: string | readonly string[],
   { error = false }: { error?: boolean } = {}
 ): void {
-  element.textContent = message;
-  element.hidden = !message;
+  const lines = (typeof message === "string" ? [message] : message).filter(Boolean);
+  if (lines.length > 1) {
+    element.replaceChildren(
+      ...lines.map((line) => createEl("span", { className: "hint__line", text: line }))
+    );
+  } else {
+    element.textContent = lines[0] ?? "";
+  }
+  element.hidden = lines.length === 0;
   element.classList.toggle("banner--error", error);
 }
 

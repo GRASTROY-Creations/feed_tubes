@@ -9,18 +9,23 @@ export interface FeedItemFields {
   thumbnailUrl: string;
   publishedAt: string;
   channelName?: string;
+  stream?: FeedItem["stream"];
+  game?: string;
+  /** Keep the item without a title; the card then shows a translated "Untitled" label. */
+  allowUntitled?: boolean;
 }
 
 /**
  * Builds a `FeedItem` attributed to `subscription`.
- * Returns `null` when the item lacks an id, a title, or a valid http(s) URL.
+ * Returns `null` when the item lacks an id, a valid http(s) URL, or a title (unless
+ * `allowUntitled` is set). Titles are stored exactly as the platform publishes them.
  */
 export function createFeedItem(
   subscription: Subscription,
   fields: FeedItemFields
 ): FeedItem | null {
   const title = cleanTitle(fields.title);
-  if (!fields.id || !title || !parseHttpUrl(fields.url)) {
+  if (!fields.id || (!title && !fields.allowUntitled) || !parseHttpUrl(fields.url)) {
     return null;
   }
 
@@ -33,6 +38,8 @@ export function createFeedItem(
     url: fields.url,
     thumbnailUrl: fields.thumbnailUrl,
     publishedAt: fields.publishedAt,
+    ...(fields.stream ? { stream: fields.stream } : {}),
+    ...(fields.game ? { game: cleanTitle(fields.game) } : {}),
   };
 }
 

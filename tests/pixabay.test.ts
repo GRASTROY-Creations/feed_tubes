@@ -171,7 +171,7 @@ describe("Pixabay refresh cooldown", () => {
       previousCache: {
         [subscriptionKey(coverr)]: {
           items: [],
-          error: entry.error ?? "",
+          error: entry.error ? { id: "error-raw" as const, args: { detail: entry.error } } : null,
           errorCode: entry.error ? "fetch-failed" : "",
           fetchedAt: entry.fetchedAt,
         },
@@ -192,7 +192,7 @@ describe("Pixabay refresh cooldown", () => {
     const { result, fetches } = await refreshWith({ fetchedAt: hoursAgo(2) });
     expect(fetches).toBe(0);
     expect(result.throttled).toBe(1);
-    expect(formatWait(result.nextRefreshAt, NOW)).toBe("22 h");
+    expect(formatWait(result.nextRefreshAt, NOW)).toBe("22 hr");
   });
 
   it("fetches again after 24 hours", async () => {

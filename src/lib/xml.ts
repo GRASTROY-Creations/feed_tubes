@@ -1,8 +1,11 @@
-/** Parses XML and throws `errorMessage` when the document is malformed. */
-export function parseXml(text: string, errorMessage: string): Document {
+import { LocalizedError } from "./errors.js";
+import type { MessageKey } from "./i18n/index.js";
+
+/** Parses XML and throws the `errorId` message when the document is malformed. */
+export function parseXml(text: string, errorId: MessageKey): Document {
   const document = new DOMParser().parseFromString(text, "application/xml");
   if (document.getElementsByTagName("parsererror").length > 0) {
-    throw new Error(errorMessage);
+    throw new LocalizedError(errorId);
   }
   return document;
 }

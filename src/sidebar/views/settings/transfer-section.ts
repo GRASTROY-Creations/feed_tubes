@@ -11,6 +11,7 @@ import { isMergeMode, mergeSubscriptions } from "../../../lib/subscriptions.js";
 import type { AppContext } from "../../app-context.js";
 import { showError, showToast } from "../../components/toast.js";
 import { withDisabled, type SettingsSection } from "./shared.js";
+import { t } from "../../../lib/i18n/index.js";
 
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 const OBJECT_URL_LIFETIME_MS = 1000;
@@ -29,20 +30,21 @@ function downloadText(filename: string, text: string, mime: string): void {
   }, OBJECT_URL_LIFETIME_MS);
 }
 
-function importReport(parsed: ImportResult, storedCount: number): string {
+/** One sentence per line: what was imported, skipped, and stored. */
+function importReport(parsed: ImportResult, storedCount: number): string[] {
   const details = [
-    `Imported ${parsed.subscriptions.length} subscription(s) from ${parsed.format}.`,
+    t("transfer-imported", { count: parsed.subscriptions.length, format: parsed.format }),
   ];
   if (parsed.invalid.length > 0) {
-    details.push(`${parsed.invalid.length} invalid row(s) skipped.`);
+    details.push(t("transfer-invalid-rows", { count: parsed.invalid.length }));
   }
   if (parsed.warnings.length > 0) {
-    details.push(parsed.warnings.join(" "));
+    details.push(...parsed.warnings);
   }
   if (storedCount !== parsed.subscriptions.length) {
-    details.push(`${storedCount} subscription(s) stored.`);
+    details.push(t("transfer-stored", { count: storedCount }));
   }
-  return details.join(" ");
+  return details;
 }
 
 /** Import and export of subscription files. */
@@ -63,12 +65,12 @@ export function initTransferSection(app: AppContext): SettingsSection {
   };
 
   async function importFile(file: File): Promise<void> {
-    setMessage(elements.importReport, "Importing…");
+    setMessage(elements.importReport, t("transfer-importing"));
 
     try {
       const parsed = parseSubscriptionsFile(await file.text(), file.name);
       if (parsed.subscriptions.length === 0) {
-        reportError("No valid subscriptions were found.");
+        reportError(t("transfer-none-found"));
         return;
       }
 
@@ -77,7 +79,7 @@ export function initTransferSection(app: AppContext): SettingsSection {
       if (
         mode === "replace" &&
         current.length > 0 &&
-        !window.confirm("Replace all existing subscriptions with this file?")
+        !window.confirm(t("transfer-confirm-replace"))
       ) {
         setMessage(elements.importReport, "");
         return;
@@ -87,20 +89,20 @@ export function initTransferSection(app: AppContext): SettingsSection {
       await app.persistSubscriptions(next);
       elements.importFile.value = "";
       setMessage(elements.importReport, importReport(parsed, next.length));
-      showToast("Subscriptions imported.");
+      showToast(t("transfer-imported-toast"));
     } catch (error) {
-      reportError(errorMessage(error, "Could not import the file."));
+      reportError(errorMessage(error, t("transfer-import-failed")));
     }
   }
 
   elements.importButton.addEventListener("click", () => {
     const file = elements.importFile.files?.[0];
     if (!file) {
-      reportError("Choose a subscription file first.");
+      reportError(t("transfer-choose-file"));
       return;
     }
     if (file.size > MAX_IMPORT_BYTES) {
-      reportError("The file is larger than the 5 MB limit.");
+      reportError(t("transfer-too-large"));
       return;
     }
     void withDisabled(elements.importButton, () => importFile(file));
@@ -110,16 +112,16 @@ export function initTransferSection(app: AppContext): SettingsSection {
     const format = elements.exportFormat.value;
     const scope = elements.exportScope.value === "enabled" ? "enabled" : "all";
     if (!isExportFormat(format)) {
-      showError("Choose an export format.");
+      showError(t("transfer-choose-format"));
       return;
     }
 
     try {
       const output = exportSubscriptions(format, app.state.subscriptions, scope);
       downloadText(output.filename, output.text, output.mime);
-      showToast(`Exported ${output.filename}.`);
+      showToast(t("transfer-exported", { filename: output.filename }));
     } catch (error) {
-      showError(errorMessage(error, "Could not export subscriptions."));
+      showError(errorMessage(error, t("transfer-export-failed")));
     }
   });
 

@@ -1,4 +1,4 @@
-import { errorMessage } from "../errors.js";
+import { LocalizedError, toLocalizedText } from "../errors.js";
 import { decodeHtmlEntities } from "../text.js";
 import { toIsoString } from "../time.js";
 import type {
@@ -116,7 +116,7 @@ export async function resolveYouTubeChannel(
 
   const pageUrl = youtubeChannelPageUrl(value);
   if (!pageUrl) {
-    throw new Error("Enter a YouTube channel ID (UC…), channel URL, or @handle.");
+    throw new LocalizedError("youtube-enter-id");
   }
 
   try {
@@ -134,12 +134,14 @@ export async function resolveYouTubeChannel(
       return fromPage;
     }
   } catch (error) {
-    throw new Error(`Could not look up ${pageUrl}: ${errorMessage(error, "request failed")}`, {
-      cause: error,
-    });
+    throw new LocalizedError(
+      "youtube-lookup-failed",
+      { url: pageUrl, error: toLocalizedText(error, "youtube-request-failed") },
+      { cause: error }
+    );
   }
 
-  throw new Error("Could not resolve that YouTube handle. Enter the UC… channel ID instead.");
+  throw new LocalizedError("youtube-unresolved");
 }
 
 function toFeedItem(entry: Element, subscription: Subscription): FeedItem | null {
@@ -175,7 +177,7 @@ async function channelIdFor(subscription: Subscription, context: AdapterContext)
     (value) => youtubeChannelPageUrl(value) !== ""
   );
   if (!lookup) {
-    throw new Error("This YouTube subscription has no channel ID. Edit it and enter the UC… ID.");
+    throw new LocalizedError("youtube-no-channel-id");
   }
 
   return (await resolveYouTubeChannel(lookup, context, { includeName: false })).channelId;
@@ -192,7 +194,7 @@ async function fetchFromFeed(
     accept: FEED_ACCEPT,
   });
 
-  const document = parseXml(xml, "The YouTube feed is not valid XML.");
+  const document = parseXml(xml, "youtube-invalid-xml");
   return Array.from(document.getElementsByTagName("entry"))
     .map((entry) => toFeedItem(entry, subscription))
     .filter(isFeedItem);
@@ -207,7 +209,7 @@ async function fetchFromVideosTab(
   const { channelName, videos } = await fetchChannelVideos(channelId, context);
   if (videos.length === 0) {
     // More likely a changed response format than a channel without uploads.
-    throw new Error("the Videos tab listed no videos");
+    throw new LocalizedError("youtube-empty-videos-tab");
   }
   return videos
     .map((video) =>
@@ -236,8 +238,12 @@ async function fetchItems(
     try {
       items = await fetchFromVideosTab(channelId, subscription, context);
     } catch (fallbackError) {
-      throw new Error(
-        `YouTube feed failed (${errorMessage(feedError, "unknown error")}), and so did the fallback (${errorMessage(fallbackError, "unknown error")}).`,
+      throw new LocalizedError(
+        "youtube-both-failed",
+        {
+          feed: toLocalizedText(feedError, "common-unknown-error"),
+          fallback: toLocalizedText(fallbackError, "common-unknown-error"),
+        },
         { cause: fallbackError }
       );
     }

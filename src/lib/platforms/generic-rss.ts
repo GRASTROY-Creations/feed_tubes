@@ -1,3 +1,4 @@
+import { LocalizedError } from "../errors.js";
 import { decodeHtmlEntities } from "../text.js";
 import { toIsoString } from "../time.js";
 import type { AdapterContext, FeedItem, PlatformAdapter, Subscription } from "../types.js";
@@ -71,7 +72,7 @@ export function parseSyndicationFeed(
   subscription: Subscription,
   feedUrl: string
 ): FeedItem[] {
-  const document = parseXml(xmlText, "The feed is not valid XML.");
+  const document = parseXml(xmlText, "rss-invalid-xml");
   const base = feedUrl || subscription.feedUrl || subscription.instanceUrl;
   const rssItems = Array.from(document.getElementsByTagName("item"));
   const nodes = rssItems.length > 0 ? rssItems : Array.from(document.getElementsByTagName("entry"));
@@ -86,7 +87,7 @@ export async function fetchFeedItems(
   context: AdapterContext
 ): Promise<FeedItem[]> {
   if (!parseHttpUrl(feedUrl)) {
-    throw new Error("This subscription needs a valid RSS or Atom feed URL.");
+    throw new LocalizedError("rss-needs-feed");
   }
 
   const xml = await context.fetchText(feedUrl, {

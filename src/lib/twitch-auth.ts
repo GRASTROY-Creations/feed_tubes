@@ -1,3 +1,4 @@
+import { LocalizedError } from "./errors.js";
 /**
  * "Sign in with Twitch" using the OAuth implicit grant, which needs only a public Client ID
  * (no client secret, so nothing secret ships with the add-on):
@@ -38,15 +39,19 @@ export function parseTwitchRedirect(redirectUrl: string, expectedState: string):
 
   const error = params.get("error_description") ?? params.get("error");
   if (error) {
-    throw new Error(`Twitch sign-in failed: ${error.replaceAll("+", " ")}`);
+    throw new LocalizedError("twitch-auth-failed", {
+      reason: { id: "error-raw", args: { detail: error.replaceAll("+", " ") } },
+    });
   }
   if (params.get("state") !== expectedState) {
-    throw new Error("Twitch sign-in failed: the response did not match the request.");
+    throw new LocalizedError("twitch-auth-failed", {
+      reason: { id: "twitch-auth-state-mismatch" },
+    });
   }
 
   const token = params.get("access_token");
   if (!token) {
-    throw new Error("Twitch sign-in failed: no access token was returned.");
+    throw new LocalizedError("twitch-auth-failed", { reason: { id: "twitch-auth-no-token" } });
   }
   return token;
 }
@@ -59,7 +64,7 @@ export async function validateTwitchToken(token: string): Promise<string> {
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error("Twitch rejected the sign-in token.");
+    throw new LocalizedError("twitch-auth-rejected");
   }
   return asString(asRecord(await response.json()).login);
 }

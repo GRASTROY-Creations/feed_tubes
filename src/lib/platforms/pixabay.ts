@@ -1,3 +1,4 @@
+import { LocalizedError } from "../errors.js";
 /**
  * Pixabay (https://pixabay.com) adapter, following one contributor's videos through the official
  * API: https://pixabay.com/api/docs/#api_search_videos
@@ -67,13 +68,12 @@ function isFromUser(hit: Record<string, unknown>, user: PixabayUser): boolean {
   return asString(hit.user).toLowerCase() === user.name.toLowerCase();
 }
 
-/** Tags are the only descriptive text the API returns: `"flowers, yellow, blossom"`. */
+/**
+ * Tags are the only descriptive text the API returns, already as one string:
+ * `"flowers, yellow, blossom"`. They are used as published, only capitalized.
+ */
 function titleFromTags(tags: string): string {
-  const title = tags
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean)
-    .join(", ");
+  const title = tags.trim();
   return title ? `${title.charAt(0).toUpperCase()}${title.slice(1)}` : "";
 }
 
@@ -86,7 +86,8 @@ function toFeedItem(hit: Record<string, unknown>, subscription: Subscription): F
 
   return createFeedItem(subscription, {
     id: id ? `pixabay:${id}` : "",
-    title: titleFromTags(asString(hit.tags)) || `Pixabay video ${id}`,
+    title: titleFromTags(asString(hit.tags)),
+    allowUntitled: true,
     url: parseHttpUrl(pageUrl) ? pageUrl : `${PIXABAY_ORIGIN}/videos/id-${id}/`,
     thumbnailUrl,
     publishedAt: uploadDateFromCdnUrl(thumbnailUrl || asString(asRecord(renditions.small).url)),
@@ -100,12 +101,12 @@ async function fetchItems(
 ): Promise<FeedItem[]> {
   const key = context.apiKeys.pixabay.trim();
   if (!key) {
-    throw new Error("Add your Pixabay API key in Settings → Instances to load Pixabay videos.");
+    throw new LocalizedError("pixabay-no-key");
   }
 
   const user = parsePixabayUser(subscription.channelId);
   if (!user.name) {
-    throw new Error("This Pixabay subscription has no contributor name.");
+    throw new LocalizedError("pixabay-no-name");
   }
 
   const perPage = Math.min(MAX_PER_PAGE, Math.max(MIN_PER_PAGE, context.itemsPerSource));
@@ -130,7 +131,7 @@ async function fetchItems(
     .filter(isFeedItem);
 
   if (items.length === 0) {
-    throw new Error(`Pixabay returned no videos from "${user.name}".`);
+    throw new LocalizedError("pixabay-no-videos", { name: user.name });
   }
   return items.slice(0, context.itemsPerSource);
 }

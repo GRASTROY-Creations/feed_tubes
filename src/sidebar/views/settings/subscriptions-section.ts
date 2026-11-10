@@ -1,18 +1,26 @@
 import { createEl, createOption, getElement, setMessage, setText } from "../../../lib/dom.js";
-import { errorMessage } from "../../../lib/errors.js";
+import { errorMessage, LocalizedError } from "../../../lib/errors.js";
 import { fetchText, postJson } from "../../../lib/fetch.js";
 import { requestOrigins } from "../../../lib/permissions.js";
 import {
   compatibleInstanceKinds,
   getPlatform,
-  INSTANCE_KIND_LABELS,
+  isPlatformId,
+  channelPlaceholder,
+  instanceKindLabel,
   platformLabel,
   PLATFORMS,
 } from "../../../lib/platforms/registry.js";
 import { needsYouTubeLookup } from "../../../lib/platforms/youtube-urls.js";
 import { resolveYouTubeChannel } from "../../../lib/platforms/youtube.js";
 import { normalizeSubscription, subscriptionKey } from "../../../lib/subscriptions.js";
-import { ALL, type Instance, type RawSubscription, type Subscription } from "../../../lib/types.js";
+import {
+  ALL,
+  type Instance,
+  type PlatformId,
+  type RawSubscription,
+  type Subscription,
+} from "../../../lib/types.js";
 import { parseHttpUrl } from "../../../lib/url.js";
 import type { AppContext } from "../../app-context.js";
 import { showToast } from "../../components/toast.js";
@@ -26,8 +34,9 @@ import {
   withDisabled,
   type SettingsSection,
 } from "./shared.js";
+import { t } from "../../../lib/i18n/index.js";
 
-const DEFAULT_PLATFORM = "youtube";
+const DEFAULT_PLATFORM: PlatformId = "youtube";
 
 export function initSubscriptionsSection(app: AppContext): SettingsSection {
   const elements = {
@@ -60,7 +69,9 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     editingKey === null
       ? undefined
       : subscriptions().find((subscription) => subscriptionKey(subscription) === editingKey);
-  const selectedPlatform = () => getPlatform(elements.platform.value || DEFAULT_PLATFORM);
+  const selectedPlatformId = (): PlatformId =>
+    isPlatformId(elements.platform.value) ? elements.platform.value : DEFAULT_PLATFORM;
+  const selectedPlatform = () => getPlatform(selectedPlatformId());
 
   // --- Instance picker -------------------------------------------------------
 
@@ -85,13 +96,13 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     const options = instancesForPlatform();
 
     elements.instance.replaceChildren(
-      ...(instanceKind === "peertube" ? [] : [createOption("", "No instance selected")]),
+      ...(instanceKind === "peertube" ? [] : [createOption("", t("subs-no-instance"))]),
       ...options.map((instance) => createOption(instance.url, instanceLabel(instance))),
       ...(options.length === 0
         ? [
             createOption(
               "",
-              `Add a ${INSTANCE_KIND_LABELS[instanceKind]} instance under Instances`,
+              t("subs-add-instance-hint", { kind: instanceKindLabel(instanceKind) }),
               true
             ),
           ]
@@ -110,11 +121,11 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     const offersFeed = needsFeed || Boolean(platform.allowsFeedUrl);
 
     elements.feedRow.hidden = !offersFeed;
-    setText(elements.feedRowLabel, needsFeed ? "Feed URL" : "RSS bridge feed URL (optional)");
+    setText(elements.feedRowLabel, needsFeed ? t("subs-feed-url") : t("subs-bridge-feed-url"));
     elements.feedUrl.required = needsFeed;
     elements.channel.required = !needsFeed;
     elements.channel.disabled = needsFeed;
-    elements.channel.placeholder = platform.placeholder;
+    elements.channel.placeholder = channelPlaceholder(selectedPlatformId());
     if (needsFeed) {
       elements.channel.value = "";
     }
@@ -135,7 +146,7 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     elements.channel.value = subscription.channelId || subscription.channelUrl;
     elements.alias.value = subscription.channelName;
     elements.feedUrl.value = subscription.feedUrl;
-    setText(submit, "Save");
+    setText(submit, t("common-save"));
     elements.cancel.hidden = false;
     setMessage(elements.error, "");
     elements.form.scrollIntoView({ block: "nearest" });
@@ -147,7 +158,10 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
 
     const toggle = createEl("input", {
       className: "list-item__toggle",
-      attrs: { type: "checkbox", "aria-label": `Enable ${subscription.channelName}` },
+      attrs: {
+        type: "checkbox",
+        "aria-label": t("subs-toggle-label", { name: subscription.channelName }),
+      },
       props: { checked: subscription.enabled },
     });
     toggle.addEventListener("change", () => {
@@ -161,12 +175,12 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     const detail = subscription.channelId || subscription.feedUrl || subscription.channelUrl;
     return listRow({
       leading: toggle,
-      title: subscription.channelName || subscription.channelId || "Subscription",
+      title: subscription.channelName || subscription.channelId || t("subs-fallback-title"),
       meta: `${platformLabel(subscription.platform)} · ${detail}`,
       onEdit: () => {
         startEditing(subscription);
       },
-      removeLabel: "Delete",
+      removeLabel: t("common-delete"),
       onRemove: () => {
         void (async () => {
           await saveSubscriptions(
@@ -175,7 +189,7 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
           if (editingKey === key) {
             reset();
           }
-          showToast("Subscription deleted.");
+          showToast(t("subs-deleted"));
         })();
       },
     });
@@ -202,11 +216,7 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
 
     if (values.length === 0) {
       elements.list.replaceChildren(
-        hintParagraph(
-          subscriptions().length === 0
-            ? "No subscriptions yet."
-            : "No subscriptions match the current filters."
-        )
+        hintParagraph(subscriptions().length === 0 ? t("subs-empty") : t("subs-no-matches"))
       );
       return;
     }
@@ -224,7 +234,7 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     editingKey = null;
     elements.form.reset();
     elements.platform.value = DEFAULT_PLATFORM;
-    setText(submit, "Add");
+    setText(submit, t("common-add"));
     elements.cancel.hidden = true;
     setMessage(elements.error, "");
     updateForm();
@@ -263,7 +273,7 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
 
     // Must be the first await so Firefox still treats the request as user-initiated.
     if (!(await requestOrigins([PLATFORMS.youtube.permissionOrigin]))) {
-      throw new Error("Access to YouTube is needed to look up this channel.");
+      throw new LocalizedError("subs-youtube-access");
     }
     const resolved = await resolveYouTubeChannel(channelInput, {
       fetchText,
@@ -296,7 +306,7 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     try {
       raw = await readForm();
     } catch (error) {
-      setMessage(elements.error, errorMessage(error, "Could not read the channel."), {
+      setMessage(elements.error, errorMessage(error, t("subs-read-failed")), {
         error: true,
       });
       return;
@@ -304,7 +314,7 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
 
     const result = normalizeSubscription(raw);
     if (!result.subscription) {
-      setMessage(elements.error, result.errors.join(" "), { error: true });
+      setMessage(elements.error, result.errors, { error: true });
       return;
     }
 
@@ -313,14 +323,14 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
       nextKey !== editingKey &&
       subscriptions().some((subscription) => subscriptionKey(subscription) === nextKey);
     if (conflict) {
-      setMessage(elements.error, "This subscription already exists.", { error: true });
+      setMessage(elements.error, t("subs-exists"), { error: true });
       return;
     }
 
     const wasEditing = editingKey !== null;
     await saveSubscriptions(nextSubscriptions(result.subscription));
     reset();
-    showToast(wasEditing ? "Subscription saved." : "Subscription added.");
+    showToast(wasEditing ? t("subs-saved") : t("subs-added"));
   }
 
   elements.form.addEventListener("submit", (event) => {
@@ -334,7 +344,7 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     void saveSubscriptions(
       subscriptions().map((subscription) => ({ ...subscription, enabled }))
     ).then(() => {
-      showToast(enabled ? "All subscriptions enabled." : "All subscriptions disabled.");
+      showToast(enabled ? t("subs-all-enabled") : t("subs-all-disabled"));
     });
   }
 
@@ -348,15 +358,15 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
   elements.deleteDisabled.addEventListener("click", () => {
     const disabledCount = subscriptions().filter((subscription) => !subscription.enabled).length;
     if (disabledCount === 0) {
-      showToast("There are no disabled subscriptions.");
+      showToast(t("subs-none-disabled"));
       return;
     }
-    if (!window.confirm(`Delete ${disabledCount} disabled subscription(s)?`)) {
+    if (!window.confirm(t("subs-confirm-delete-disabled", { count: disabledCount }))) {
       return;
     }
     void saveSubscriptions(subscriptions().filter((subscription) => subscription.enabled)).then(
       () => {
-        showToast("Disabled subscriptions deleted.");
+        showToast(t("subs-disabled-deleted"));
       }
     );
   });
