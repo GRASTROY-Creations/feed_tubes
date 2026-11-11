@@ -25,7 +25,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "feedtubes@example.com",
+      "id": "{57b971cd-d6ef-461e-b364-0338f2a832a8}",
       "strict_min_version": "159.0",
       "data_collection_permissions": {
         "required": ["none"]

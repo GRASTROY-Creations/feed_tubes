@@ -87,7 +87,7 @@ export WEB_EXT_API_SECRET="<secret>"
 5. **Create the source archive for reviewers** from the committed state. Commit first so the archive matches the build.
 
    ```bash
-   git archive --format=zip --output=dist/feedtubes-source.zip HEAD
+   git archive --format=zip --output=dist/feedtubes-source.zip HEAD // TODO: fixme -> manifest is in src not in root, Background script could not be found at "background/background.js".
    ```
 
    `git archive` leaves out everything ignored by git (`node_modules/`, `build/`, `dist/`). The archive contains `docs/RELEASE.md` and `package.json`, which give reviewers the build steps: install Bun 1.4.4, run `bun install`, run `bun run build:ext`, and the result is in `build/`.
