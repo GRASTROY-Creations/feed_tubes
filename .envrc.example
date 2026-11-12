@@ -1,47 +1,21 @@
 # Copy this file to .envrc and fill in your values:
 #   cp .envrc.example .envrc
-# Then allow direnv (required once per clone, since .envrc is gitignored):
+# Then allow direnv (required once per clone, and again after every edit):
 #   direnv allow
 #
-# .envrc itself is gitignored. Never commit real passwords.
+# .envrc itself is gitignored. Never commit real credentials.
 
-# --- Android build toolchain -------------------------------------------------
-# JAVA_HOME must point at a full JDK, not a JRE. A JRE has no javac, so Gradle
-# cannot resolve a Java toolchain and the Android build fails with:
-#   Toolchain installation ... does not provide the required capabilities: [JAVA_COMPILER]
-# The Gradle daemon is pinned to JDK 25 (gradle-daemon-jvm.properties); Android
-# Studio's bundled runtime (/opt/android-studio/jbr) is only JDK 21 and no longer
-# enough. Point this at an installed JDK 25 (e.g. Temurin or Oracle).
-export JAVA_HOME=/usr/lib/jvm/jdk-25
-export ANDROID_HOME=$HOME/Android/Sdk
+# --- AMO signing (docs/RELEASE.md) ------------------------------------------
+# JWT issuer and secret from https://addons.mozilla.org/developers/addon/api/key/
+# `web-ext sign` reads both automatically. Treat them like passwords.
+export WEB_EXT_API_KEY="user:12345678:123"
+export WEB_EXT_API_SECRET="your-jwt-secret"
 
-# --- Android release signing -------------------------------------------------
-# The keystore must be a PKCS#12 (.p12) file holding a PrivateKeyEntry.
-# Generate one with:
-#   keytool -genkeypair -v -keystore ~/keys/app.p12 -storetype PKCS12 \
-#           -keyalg RSA -keysize 2048 -validity 10000 -alias your_alias
-export GS_ANDROID_KEYSTORE_PATH=$HOME/keys/your-app.p12
-export GS_ANDROID_KEYSTORE_PASSWORD=your-keystore-password
-export GS_ANDROID_KEY_ALIAS=your_alias
-export GS_ANDROID_KEY_PASSWORD=your-key-password
+# --- Browser binaries (optional) ---------------------------------------------
+# `bun run dev` auto-detects Firefox (scripts/browser-binary.ts). Set this to use
+# a specific build, e.g. Developer Edition or Nightly.
+# export FIREFOX_BIN=/usr/bin/firefox-developer-edition
 
-# --- Versioning --------------------------------------------------------------
-# Release.Feature.Patch (.docs/guide/versioning.md). Patch = git commit count
-# (`git rev-list --count HEAD`) and never resets; GS_VERSION_BASE gives
-# Release.Feature. `bun run version:sync` writes <base>.<count> into package.json,
-# Cargo.toml, tauri.conf.json, tauri.android.conf.json, the generated Android
-# tauri.properties + assets/tauri.conf.json (both required) and the packaging
-# templates in dist/. The Android versionCode is the commit count as well;
-# GS_VERSION_CODE optionally overrides it but is never accepted below the
-# configured one (Play requires it to increase).
-export GS_VERSION_BASE=x.y
-# export GS_VERSION_CODE=N
-# Legacy, used only when GS_VERSION_BASE is unset (its patch part is ignored):
-# export GS_VERSION_SEMVER=x.y.z
-
-# GS_VERSION_NAME is currently unused by the build (reserved for a codename or
-# channel label). It is intentionally not written into tauri.properties.
-# export GS_VERSION_NAME=Alpha
-
-# --- Development -------------------------------------------------------------
-export TAURI_DEV_HOST=127.0.0.1
+# `bun run start:librewolf` uses this instead of the default LibreWolf path
+# (scripts/run-librewolf.ts).
+# export LIBREWOLF_BIN=/usr/bin/librewolf

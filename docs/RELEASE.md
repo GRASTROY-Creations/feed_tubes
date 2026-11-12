@@ -19,18 +19,18 @@ For day-to-day development use `bun run dev` instead (see [DEVELOPMENT.md](DEVEL
 
 ## One-time setup
 
-### 1. Choose a permanent extension ID
+### 1. Keep the permanent extension ID
 
-`src/manifest.json` still uses the placeholder `feedtubes@example.com`.
+`src/manifest.json` already sets the permanent ID `{57b971cd-d6ef-461e-b364-0338f2a832a8}`.
 
 - The ID identifies the add-on forever: updates, stored data, and permissions are tied to it.
-- Pick it before the first signed upload and never change it afterwards.
-- Use an address-like ID on a domain you control (for example `feedtubes@grastroy.example`), or a UUID in braces (`{4f6a…}`).
+- Never change it after the first signed upload.
+- Forks that publish their own copy need their own ID: a UUID in braces, or an address-like ID on a domain they control.
 
 ```json
 "browser_specific_settings": {
   "gecko": {
-    "id": "feedtubes@your-domain.example",
+    "id": "{57b971cd-d6ef-461e-b364-0338f2a832a8}",
     "strict_min_version": "159.0",
     "data_collection_permissions": { "required": ["none"] }
   }
@@ -78,6 +78,8 @@ export WEB_EXT_API_SECRET="<secret>"
    bun run build
    ```
 
+   `web-ext sign` does not build anything: it signs whatever is in `build/` (see `web-ext-config.mjs`). Always rebuild right before signing.
+
 4. **Inspect the package.** `manifest.json` must be at the root, with only compiled `.js` files and assets: no `.ts`, tests, docs, or `node_modules`.
 
    ```bash
@@ -87,8 +89,12 @@ export WEB_EXT_API_SECRET="<secret>"
 5. **Create the source archive for reviewers** from the committed state. Commit first so the archive matches the build.
 
    ```bash
-   git archive --format=zip --output=dist/feedtubes-source.zip HEAD // TODO: fixme -> manifest is in src not in root, Background script could not be found at "background/background.js".
+   bun run package:source
    ```
+
+   This runs `git archive --format=zip --output=dist/feedtubes-source.zip HEAD`. Run it after `bun run build`, which creates `dist/`.
+
+   The source archive is **not** an installable add-on. Its `manifest.json` is in `src/`, and `src/` holds only `background/background.ts`; `background/background.js` exists only after a build. Upload it only in AMO's "source code" field (or with `--upload-source-code`), never as the add-on itself, or AMO reports `Background script could not be found at "background/background.js"`.
 
    `git archive` leaves out everything ignored by git (`node_modules/`, `build/`, `dist/`). The archive contains `docs/RELEASE.md` and `package.json`, which give reviewers the build steps: install Bun 1.4.4, run `bun install`, run `bun run build:ext`, and the result is in `build/`.
 
@@ -158,7 +164,7 @@ A listed submission returns once it has been queued for review. The approved `.x
 - Describe what the add-on does with the network: it fetches feeds directly from the platforms and bridges the user configures, and it uses YouTube's internal web API as a fallback when the RSS feed fails.
 - Optional host permissions are requested per source at runtime.
 - The `identity` permission is used only for the optional "Sign in with Twitch", through Twitch's official OAuth. No Twitch credentials ship with the add-on: each user registers their own Twitch application.
-- **Before release:** replace the placeholder extension ID first. The Twitch redirect URL users register (shown in Settings → Instances) depends on that ID, and changes when the ID changes.
+- The Twitch redirect URL users register (shown in Settings → Instances) depends on the extension ID, which is another reason never to change it.
 - No data is collected (`data_collection_permissions: none`).
 - Add screenshots of the feed and settings tabs on the listing page.
 
@@ -226,3 +232,4 @@ To remove it, open `about:addons`, then FeedTubes → **Remove**.
 | "…not compatible with Firefox"                                         | The browser is older than `strict_min_version` (159.0).                                                                                                     |
 | AMO: "Version already exists"                                          | Run `bun run bump:patch`, then rebuild.                                                                                                                     |
 | AMO: "Duplicate add-on ID found"                                       | Someone else already uses that ID. Pick another one before the first upload.                                                                                |
+| AMO / web-ext: "Background script could not be found at …"             | The source archive or `src/` was uploaded or linted instead of the built package. Run `bun run build` and upload `dist/feedtubes-<version>.zip`.            |

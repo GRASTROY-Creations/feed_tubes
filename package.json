@@ -17,6 +17,7 @@
     "start": "bun run dev",
     "start:librewolf": "bun run scripts/run-librewolf.ts",
     "build": "bun run build:ext && web-ext build",
+    "package:source": "git archive --format=zip --output=dist/feedtubes-source.zip HEAD",
     "bump": "bun run scripts/version.ts",
     "bump:patch": "bun run scripts/version.ts patch",
     "bump:minor": "bun run scripts/version.ts minor",
