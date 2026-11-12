@@ -169,6 +169,8 @@ function handleFeedUpdated(app: App, event: FeedUpdatedEvent): void {
 }
 
 async function start(): Promise<void> {
+  // Firefox's accessibility audit reads document.title; keep it set at runtime too.
+  document.title = "FeedTubes";
   const app = new App();
   // Every language is loaded up front, so switching the language later is instant. Loading
   // must finish before the first render (`reload()` renders), or the markup stays untranslated.
