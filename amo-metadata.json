@@ -1,0 +1,16 @@
+{
+  "version": {
+    "license": "MIT",
+    "approval_notes": "Source: https://github.com/GRASTROY-Creations/feed_tubes. Build with Bun 1.4.4: `bun install`, then `bun run build:ext`; output is `build/`. Upload `dist/feedtubes-<version>.zip`. The source zip is a git archive: manifest at `src/manifest.json`, not the root. No data collection."
+  },
+  "is_experimental": true,
+  "categories": {
+    "firefox": ["feeds-news-blogging", "photos-music-videos"]
+  },
+  "summary": {
+    "en-US": "One sidebar for the channels you follow on YouTube, PeerTube, Odysee, Twitch and more. No account, no algorithm, no tracking — just the newest videos from your subscriptions."
+  },
+  "description": {
+    "en-US": "FeedTubes brings PeerTube, Odysee, Rutube, Dailymotion, D.Tube, Pixabay, goodgame.ru, VK Video, Bilibili and RSS/Atom subscriptions, plus YouTube, into one Firefox sidebar. No account, no algorithm, no tracking, no server."
+  }
+}
