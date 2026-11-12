@@ -96,6 +96,8 @@ export WEB_EXT_API_SECRET="<secret>"
 
    The source archive is **not** an installable add-on. Its `manifest.json` is in `src/`, and `src/` holds only `background/background.ts`; `background/background.js` exists only after a build. Upload it only in AMO's "source code" field (or with `--upload-source-code`), never as the add-on itself, or AMO reports `Background script could not be found at "background/background.js"`.
 
+   **Don't zip `src/` by hand** for the source upload. That zip has `manifest.json` at its root but no compiled `background/background.js`, so AMO's source check reports the same error. It also leaves out `package.json`, `bun.lock`, `scripts/`, and the `tsconfig` files, so reviewers can't build it. Always use `bun run package:source`, whose archive keeps the manifest nested in `src/`.
+
    `git archive` leaves out everything ignored by git (`node_modules/`, `build/`, `dist/`). The archive contains `docs/RELEASE.md` and `package.json`, which give reviewers the build steps: install Bun 1.4.4, run `bun install`, run `bun run build:ext`, and the result is in `build/`.
 
    **Third-party code:** `build/vendor/fluent-bundle/` is the unmodified ES module build of [`@fluent/bundle`](https://www.npmjs.com/package/@fluent/bundle) (Mozilla, Apache-2.0), at the version pinned in `bun.lock`. The build copies it from `node_modules/@fluent/bundle/esm/` and only rewrites the `"@fluent/bundle"` import in FeedTubes' own compiled files to point at it. In the AMO submission notes, name the package and version, so reviewers can compare the files with the published package.
@@ -150,6 +152,7 @@ Alternatively, upload the files by hand at **Developer Hub → Submit a New Add-
 
 - `dist/feedtubes-<version>.zip` as the add-on
 - `dist/feedtubes-source.zip` when it asks for source code
+- In the reviewer notes: "Install Bun 1.4.4, run `bun install`, then `bun run build:ext`; the output is in `build/`. `build/vendor/fluent-bundle/` is the unmodified ESM build of `@fluent/bundle` 0.19.1."
 
 ### Later versions
 
