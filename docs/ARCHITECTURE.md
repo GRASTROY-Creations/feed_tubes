@@ -16,7 +16,8 @@ src/
     storage.ts                  browser.storage.local access + state normalization
     subscriptions.ts            normalization, keys, dedupe/merge
     import-export.ts            file format detection, parsers, exporters
-    refresh.ts                  concurrent refresh of all enabled subscriptions
+    refresh.ts                  due selection, batches, failure backoff
+    throttle.ts                 per-host spacing, hourly budget, pause on refusals
     fetch.ts                    fetch with timeout, retries, credentials omitted
     permissions.ts, alarms.ts   thin wrappers over browser APIs
     url.ts, time.ts, csv.ts, xml.ts, text.ts, guards.ts, errors.ts, dom.ts
@@ -72,6 +73,7 @@ YouTube's feed only accepts `UC…` channel ids. Handles, bare names (stored as 
    - Dates from the fallback are approximate, because YouTube only gives "3 days ago".
    - The internal API is undocumented, so all of its fields are read defensively.
    - An empty Videos tab is reported as an error, since that more likely means a changed response format than a channel with no uploads.
+   - Requests identify as YouTube's own web client: `clientName: WEB`, plus the `X-YouTube-Client-Name`/`-Version` headers. The version is read once a day from `/sw.js_data`, falling back to a built-in one, because YouTube rejects outdated versions. Nothing else is disguised. Origin and Referer stay as the browser sends them.
 
 ### Pixabay
 
@@ -110,19 +112,41 @@ goodgame.ru has no public list of past videos, so a subscription shows **one sta
 
 Defined in `lib/messages.ts`:
 
-| Direction            | Type               | Response                                       |
-| -------------------- | ------------------ | ---------------------------------------------- |
-| sidebar → background | `refresh-request`  | `Result<{ total, failures, completedAt }>`     |
-| sidebar → background | `settings-changed` | `Result` (the alarm is rescheduled)            |
-| sidebar → background | `alarm-info`       | `Result<{ alarm }>`                            |
-| background → sidebar | `feed-updated`     | event: `{ reason, total?, failures?, error? }` |
+| Direction            | Type               | Response                                                            |
+| -------------------- | ------------------ | ------------------------------------------------------------------- |
+| sidebar → background | `refresh-request`  | `Result<RefreshSummary>` (Refresh button)                           |
+| sidebar → background | `refresh-due`      | `Result<RefreshSummary>` (sidebar opened)                           |
+| sidebar → background | `settings-changed` | `Result` (the alarm is rescheduled)                                 |
+| sidebar → background | `alarm-info`       | `Result<{ alarm }>`                                                 |
+| background → sidebar | `feed-updated`     | event: `{ reason, total?, failures?, fetched?, progress?, error? }` |
 
 The background script answers through a typed handler map (`{ [T in RequestType]: () => Promise<RequestResponses[T]> }`). Only one refresh runs at a time; concurrent requests share the promise of the one in flight.
 
-Each subscription is fetched at most once per 5 minutes (`REFRESH_COOLDOWN_MS` in `refresh.ts`), whether the refresh comes from the Refresh button, opening the sidebar, or the alarm.
+## Refresh at scale
 
-- Skipped subscriptions keep their cached entry. The response reports `throttled` and `nextRefreshAt`, and the manual-refresh toast shows the wait time.
-- Sources that failed only for missing host access are never held back, so "Grant access" loads them right away.
+Lists of thousands of subscriptions must neither freeze the sidebar nor get the user's IP blocked. A refresh therefore fetches little, slowly, and stops when a host refuses.
+
+**What is fetched (`refresh.ts`):**
+
+- **Cache first:** the feed is always shown from `storage.local`, also after a browser restart. A refresh only fetches subscriptions that are **due**.
+- **Check interval:** the "Check each subscription" setting (`refresh.intervalMinutes`, 1–24 h). Channels whose newest video is over a week old are checked half as often; over a month old, at most once a day.
+- **Modes:** the alarm and opening the sidebar fetch only due subscriptions (`due`). The Refresh button ignores the interval but keeps the 5 minute cooldown (`REFRESH_COOLDOWN_MS`) and the failure backoff (`manual`).
+- **Failure backoff:** a failing source waits 5 min, doubling with each failure in a row, up to a day (`CacheEntry.failures`). Sources that failed only for missing host access are never held back, so "Grant access" loads them right away.
+- **Batches:** at most `MAX_SOURCES_PER_RUN` (100) sources per run, never-fetched first, then the longest overdue. The rest is reported as `pending`. The background saves the cache and notifies the sidebar every `PROGRESS_EVERY` (25) sources, so the feed fills in while a run goes on. When sources remain, a one-shot alarm (`REFRESH_CONTINUE_ALARM`) runs the next batch two minutes later. The periodic alarm wakes at most every 30 minutes and sends nothing when nothing is due.
+
+**How fast (`throttle.ts`):** every request of a run goes through one host throttle. Its limits are constants (`HOST_POLICIES`), not settings:
+
+| Limit              | `www.youtube.com`              | Other hosts |
+| ------------------ | ------------------------------ | ----------- |
+| In flight          | 1                              | 2           |
+| Gap between starts | 1 s + up to 0.5 s jitter       | 0.3 s       |
+| Pause              | 8–15 s after every 50 requests | none        |
+| Requests per hour  | 900                            | 1500        |
+
+- **Pause on refusal:** three HTTP 429/403 answers in a row pause the host for 30 minutes, doubling up to 12 hours (or longer if `Retry-After` asks for it). A success clears the pause.
+- **Deferred, not failed:** sources of a paused or over-budget host keep their cache entry and are counted as `deferred`. The continuation alarm waits until the host is available again.
+- **Stored:** the hourly usage and pauses are stored (`hostLimits`), so they hold across runs and background restarts.
+- **Retries:** the throttle sends with `retries: 0` and retries a transient failure once itself, through the gate. `fetch.ts` never retries 429.
 
 ## Sidebar
 

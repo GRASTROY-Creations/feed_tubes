@@ -7,22 +7,67 @@
  * and because the public RSS feeds (`/feeds/videos.xml`) have been failing with HTTP 404/500.
  */
 import { asArray, asRecord, asString, isRecord, type UnknownRecord } from "../guards.js";
-import type { FetchOptions, PostJson } from "../types.js";
+import type { FetchOptions, FetchText, PostJson } from "../types.js";
 import { isYouTubeChannelId, YOUTUBE_ORIGIN } from "./youtube-urls.js";
 
 const API_BASE = `${YOUTUBE_ORIGIN}/youtubei/v1`;
 
-/** Identifies as the regular web client; English so publish ages can be parsed. */
-const CLIENT_CONTEXT = {
-  client: { clientName: "WEB", clientVersion: "2.20250101.00.00", hl: "en", gl: "US" },
-};
+/** `clientName` of the regular web client, as the numeric `X-YouTube-Client-Name` header. */
+const WEB_CLIENT_NAME = "WEB";
+const WEB_CLIENT_ID = "1";
+
+/**
+ * Used when the current version cannot be read. YouTube rejects versions that are too old,
+ * so it is read from YouTube itself first (see `clientVersion`).
+ */
+export const FALLBACK_CLIENT_VERSION = "2.20261101.00.00";
+/** Small service-worker bootstrap that names the current web client version. */
+const CLIENT_VERSION_URL = `${YOUTUBE_ORIGIN}/sw.js_data`;
+const CLIENT_VERSION_PATTERN = /"(2\.20\d{6}\.\d{2}\.\d{2})"/;
+const CLIENT_VERSION_TTL_MS = 24 * 60 * 60 * 1000;
+/** After a failed lookup, use the fallback for this long before asking again. */
+const CLIENT_VERSION_RETRY_MS = 60 * 60 * 1000;
 
 /** Protobuf-encoded `params` that select a channel's "Videos" tab. */
 const VIDEOS_TAB_PARAMS = "EgZ2aWRlb3PyBgQKAjoA";
 
 export interface InnertubeContext {
+  fetchText: FetchText;
   postJson: PostJson;
   timeoutMs: number;
+}
+
+/** The current web client version, as found in `sw.js_data`; `""` when absent. */
+export function parseClientVersion(text: string): string {
+  return CLIENT_VERSION_PATTERN.exec(text)?.[1] ?? "";
+}
+
+let cachedVersion: { version: string; expiresAt: number } | null = null;
+
+/** Forgets the looked-up client version. For tests. */
+export function resetClientVersion(): void {
+  cachedVersion = null;
+}
+
+/**
+ * The web client version to send. Looked up once a day (one small request, made only when
+ * the API is actually needed), so requests carry the version the website itself uses.
+ */
+export async function clientVersion(context: InnertubeContext, now = Date.now()): Promise<string> {
+  if (cachedVersion && cachedVersion.expiresAt > now) {
+    return cachedVersion.version;
+  }
+  try {
+    const found = parseClientVersion(
+      await context.fetchText(CLIENT_VERSION_URL, { timeoutMs: context.timeoutMs, accept: "*/*" })
+    );
+    cachedVersion = found
+      ? { version: found, expiresAt: now + CLIENT_VERSION_TTL_MS }
+      : { version: FALLBACK_CLIENT_VERSION, expiresAt: now + CLIENT_VERSION_RETRY_MS };
+  } catch {
+    cachedVersion = { version: FALLBACK_CLIENT_VERSION, expiresAt: now + CLIENT_VERSION_RETRY_MS };
+  }
+  return cachedVersion.version;
 }
 
 export interface InnertubeVideo {
@@ -38,11 +83,24 @@ export interface InnertubeChannelVideos {
   videos: InnertubeVideo[];
 }
 
-function call(endpoint: string, body: UnknownRecord, context: InnertubeContext): Promise<unknown> {
-  const options: FetchOptions = { timeoutMs: context.timeoutMs };
+/**
+ * Calls the API the way the website's own web client does: the same client name and version,
+ * in the body and in the `X-YouTube-Client-*` headers. English, so publish ages can be parsed.
+ */
+async function call(
+  endpoint: string,
+  body: UnknownRecord,
+  context: InnertubeContext
+): Promise<unknown> {
+  const version = await clientVersion(context);
+  const options: FetchOptions = {
+    timeoutMs: context.timeoutMs,
+    headers: { "X-YouTube-Client-Name": WEB_CLIENT_ID, "X-YouTube-Client-Version": version },
+  };
+  const client = { clientName: WEB_CLIENT_NAME, clientVersion: version, hl: "en", gl: "US" };
   return context.postJson(
     `${API_BASE}/${endpoint}?prettyPrint=false`,
-    { context: CLIENT_CONTEXT, ...body },
+    { context: { client }, ...body },
     options
   );
 }

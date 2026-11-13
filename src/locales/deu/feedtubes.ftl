@@ -35,6 +35,11 @@ feed-status-failures =
        *[other] { $count } Quellen konnten nicht aktualisiert werden.
     }
 feed-status-never-refreshed = Der Feed wurde noch nicht aktualisiert.
+feed-status-queued =
+    { $count ->
+        [one] { $count } Quelle wartet und wird im Hintergrund geladen.
+       *[other] { $count } Quellen warten und werden im Hintergrund geladen.
+    }
 feed-error-permissions =
     { $count ->
         [one] Für { $count } Quelle wird Zugriff benötigt. Erlauben Sie den Zugriff, um den vollständigen Feed zu laden.
@@ -86,6 +91,11 @@ refresh-refreshed =
     }
 refresh-failed = { $count } fehlgeschlagen
 refresh-skipped = { $count } übersprungen (kürzlich aktualisiert, { $wait })
+refresh-queued =
+    { $count ->
+        [one] { $count } für die nächste Runde vorgemerkt
+       *[other] { $count } für die nächsten Runden vorgemerkt
+    }
 refresh-error-permission = Für diese Quelle ist eine Host-Berechtigung erforderlich.
 refresh-error-generic = Diese Quelle konnte nicht aktualisiert werden.
 background-refresh-failed = Aktualisierung fehlgeschlagen.
@@ -105,12 +115,14 @@ settings-language = Sprache
 settings-language-auto = Automatisch (Browsersprache)
 settings-language-changed = Sprache geändert.
 settings-fetching-title = Automatischer Abruf
-settings-fetching-interval = Abrufintervall
+settings-fetching-interval = Jedes Abonnement prüfen
 settings-fetching-every1h = Jede Stunde
 settings-fetching-every3h = Alle 3 Stunden
 settings-fetching-every6h = Alle 6 Stunden
+settings-fetching-every12h = Alle 12 Stunden
+settings-fetching-every24h = Alle 24 Stunden
 settings-fetching-background = Feed im Hintergrund abrufen
-settings-fetching-hint = *Der Feed wird beim Öffnen der Sidebar abgerufen, wenn der Cache veraltet ist.
+settings-fetching-hint = *Abgerufen werden nur Abonnements, deren Intervall abgelaufen ist, auch beim Öffnen der Sidebar. Kanäle ohne neue Uploads werden seltener geprüft (höchstens täglich). Große Listen werden in kleinen Runden geladen.
 settings-fetching-schedule-updated = Aktualisierungsplan geändert.
 settings-fetching-background-on = Hintergrundaktualisierung aktiviert.
 settings-fetching-background-off = Hintergrundaktualisierung deaktiviert.
@@ -160,6 +172,7 @@ subs-confirm-delete-disabled =
        *[other] { $count } deaktivierte Abonnements löschen?
     }
 subs-disabled-deleted = Deaktivierte Abonnements gelöscht.
+subs-show-more = { $count } weitere anzeigen ({ $remaining } übrig)
 placeholder-youtube = UC… / Kanal-URL / @handle
 placeholder-peertube = Kanal-Handle oder /c/-URL
 placeholder-odysee = @name:claimid
@@ -268,6 +281,8 @@ transfer-imported-toast = Abonnements importiert.
 transfer-import-failed = Die Datei konnte nicht importiert werden.
 transfer-choose-file = Wählen Sie zuerst eine Abonnement-Datei.
 transfer-too-large = Die Datei überschreitet die Grenze von 5 MB.
+transfer-access-needed = Diese Quellen brauchen Host-Zugriff, bevor sie abgerufen werden können.
+transfer-grant-access = Zugriff erlauben und abrufen
 transfer-choose-format = Wählen Sie ein Exportformat.
 transfer-exported = { $filename } exportiert.
 transfer-export-failed = Abonnements konnten nicht exportiert werden.
@@ -302,6 +317,8 @@ field-feed-url = Feed-URL
 fetch-http-error = Anfrage fehlgeschlagen mit HTTP { $status } ({ $url }).
 fetch-network-error = { $url } nicht erreichbar: { $cause }
 fetch-network-fallback = Netzwerkfehler
+fetch-host-paused = { $host } lehnt Anfragen ab, daher pausiert FeedTubes diesen Host eine Weile.
+fetch-host-budget = Das stündliche Anfragelimit für { $host } ist erreicht; der Rest folgt später.
 
 ## Platforms
 

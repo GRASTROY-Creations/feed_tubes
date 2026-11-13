@@ -3,9 +3,14 @@ import type { FetchOptions } from "./types.js";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_RETRIES = 1;
-const RETRY_DELAY_MS = 500;
+const RETRY_BASE_DELAY_MS = 500;
+const RETRY_JITTER_MS = 250;
 const DEFAULT_ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
-const RETRYABLE_STATUSES = new Set([408, 425, 429]);
+/**
+ * Transient statuses worth one more try. 429 is deliberately absent: a host that says
+ * "too many requests" must not get more of them; the host throttle pauses it instead.
+ */
+const RETRYABLE_STATUSES = new Set([408, 425]);
 
 type ResponseType = "text" | "json";
 
@@ -25,16 +30,39 @@ function isRetryableStatus(status: number): boolean {
   return RETRYABLE_STATUSES.has(status) || status >= 500;
 }
 
-/** Retries transient HTTP failures and network errors, never a request the caller aborted. */
-function shouldRetry(error: unknown, callerSignal: AbortSignal | undefined): boolean {
-  if (callerSignal?.aborted) {
-    return false;
-  }
+/** True for transient failures: server errors, timeouts, and network errors. */
+export function isTransientError(error: unknown): boolean {
   if (error instanceof HttpError) {
     return isRetryableStatus(error.status);
   }
-  // fetch() rejects with a TypeError for network failures.
-  return error instanceof TypeError;
+  // fetch() rejects with a TypeError for network failures; `request()` wraps it.
+  return error instanceof TypeError || error instanceof NetworkError;
+}
+
+/** Retries transient failures, never a request the caller aborted. */
+function shouldRetry(error: unknown, callerSignal: AbortSignal | undefined): boolean {
+  return !callerSignal?.aborted && isTransientError(error);
+}
+
+/** Exponential backoff with jitter, so retries from many sources do not line up. */
+export function retryDelayMs(attemptIndex: number, random: () => number = Math.random): number {
+  return RETRY_BASE_DELAY_MS * 2 ** attemptIndex + Math.floor(random() * RETRY_JITTER_MS);
+}
+
+/**
+ * `Retry-After` as milliseconds: either delay-seconds or an HTTP date. `null` when absent or
+ * unreadable.
+ */
+export function parseRetryAfter(value: string | null, now = Date.now()): number | null {
+  if (!value) {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (/^\d+$/.test(trimmed)) {
+    return Number(trimmed) * 1000;
+  }
+  const date = Date.parse(trimmed);
+  return Number.isFinite(date) ? Math.max(0, date - now) : null;
 }
 
 async function attempt(
@@ -65,7 +93,7 @@ async function attempt(
   });
 
   if (!response.ok) {
-    throw new HttpError(response.status, url);
+    throw new HttpError(response.status, url, parseRetryAfter(response.headers.get("Retry-After")));
   }
 
   return responseType === "json" ? response.json() : response.text();
@@ -93,7 +121,7 @@ async function request(
         // Name the URL, because the browser's own network error message does not.
         throw error instanceof TypeError ? new NetworkError(url, error) : error;
       }
-      await wait(RETRY_DELAY_MS);
+      await wait(retryDelayMs(attemptIndex));
     }
   }
 }

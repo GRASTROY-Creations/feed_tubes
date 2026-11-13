@@ -6,7 +6,11 @@ import { isRecord } from "./guards.js";
 import type { LocalizedText } from "./i18n/index.js";
 import type { RefreshSummary } from "./refresh.js";
 
-export type RefreshReason = "manual" | "alarm";
+/**
+ * - `manual`: the refresh button. `open`: the sidebar was opened.
+ * - `alarm`: the periodic background check. `continue`: the next part of a large list.
+ */
+export type RefreshReason = "manual" | "open" | "alarm" | "continue";
 
 /** Errors cross extension contexts untranslated; the sidebar translates them when shown. */
 export type Result<T extends object = object> =
@@ -14,7 +18,10 @@ export type Result<T extends object = object> =
 
 /** Each request type and the response the background sends back. */
 export interface RequestResponses {
+  /** Refresh button: everything past the short cooldown, in batches. */
   "refresh-request": Result<RefreshSummary>;
+  /** Sidebar opened: only what is due; sends no request when nothing is. */
+  "refresh-due": Result<RefreshSummary>;
   "settings-changed": Result;
   "alarm-info": Result<{ alarm: browser.alarms.Alarm | null }>;
 }
@@ -25,7 +32,12 @@ export interface Request<T extends RequestType = RequestType> {
   type: T;
 }
 
-const REQUEST_TYPES: readonly RequestType[] = ["refresh-request", "settings-changed", "alarm-info"];
+const REQUEST_TYPES: readonly RequestType[] = [
+  "refresh-request",
+  "refresh-due",
+  "settings-changed",
+  "alarm-info",
+];
 
 export function isRequest(message: unknown): message is Request {
   return isRecord(message) && REQUEST_TYPES.includes(message.type as RequestType);
@@ -42,6 +54,10 @@ export interface FeedUpdatedEvent {
   reason: RefreshReason;
   total?: number;
   failures?: number;
+  /** Sources fetched in the run that just ended. */
+  fetched?: number;
+  /** Set while a run is still going: it saved part of its results. */
+  progress?: { done: number; planned: number };
   error?: LocalizedText;
 }
 

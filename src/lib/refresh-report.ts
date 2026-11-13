@@ -13,25 +13,32 @@ export function formatWait(nextRefreshAt: string | null, now: Date): string {
   return formatDuration(remaining);
 }
 
-/** User-facing summary of a manual refresh, including sources skipped by the cooldown. */
-export function describeRefresh(
-  summary: Pick<RefreshSummary, "total" | "failures" | "throttled" | "nextRefreshAt">,
-  now = new Date()
-): RefreshReport {
+type DescribedSummary = Pick<RefreshSummary, "total" | "failures" | "throttled" | "nextRefreshAt"> &
+  Partial<Pick<RefreshSummary, "pending" | "deferred">>;
+
+/**
+ * User-facing summary of a manual refresh, including sources skipped by the cooldown and
+ * sources queued for later batches.
+ */
+export function describeRefresh(summary: DescribedSummary, now = new Date()): RefreshReport {
   const { total, failures, throttled, nextRefreshAt } = summary;
   if (total === 0) {
     return { message: t("refresh-no-subscriptions"), error: false };
   }
 
+  const queued = (summary.pending ?? 0) + (summary.deferred ?? 0);
   const wait = t("refresh-next-in", { time: formatWait(nextRefreshAt, now) });
-  const fetched = total - throttled;
-  if (fetched === 0) {
+  const fetched = total - throttled - queued;
+  if (fetched === 0 && queued === 0) {
     return { message: t("refresh-all-recent", { wait }), error: false };
   }
 
   const parts = [t("refresh-refreshed", { count: fetched })];
   if (failures > 0) {
     parts.push(t("refresh-failed", { count: failures }));
+  }
+  if (queued > 0) {
+    parts.push(t("refresh-queued", { count: queued }));
   }
   if (throttled > 0) {
     parts.push(t("refresh-skipped", { count: throttled, wait }));

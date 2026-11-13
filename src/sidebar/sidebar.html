@@ -134,11 +134,13 @@
               Automatic Fetching
             </h3>
             <label class="field">
-              <span data-i18n="settings-fetching-interval">Fetching interval</span>
+              <span data-i18n="settings-fetching-interval">Check each subscription</span>
               <select id="refresh-interval">
                 <option value="60" data-i18n="settings-fetching-every1h">Every 1 hour</option>
                 <option value="180" data-i18n="settings-fetching-every3h">Every 3 hours</option>
                 <option value="360" data-i18n="settings-fetching-every6h">Every 6 hours</option>
+                <option value="720" data-i18n="settings-fetching-every12h">Every 12 hours</option>
+                <option value="1440" data-i18n="settings-fetching-every24h">Every 24 hours</option>
               </select>
             </label>
             <label class="checkbox">
@@ -146,7 +148,7 @@
               <span data-i18n="settings-fetching-background">Fetch feed in the background</span>
             </label>
             <p class="hint" data-i18n="settings-fetching-hint">
-              *Feed is fetched on sidebar opening if cache is stale.
+              *Only subscriptions whose interval has passed are fetched.
             </p>
 
             <hr class="divider" />
@@ -485,6 +487,15 @@
               Import
             </button>
             <p id="import-report" class="hint" role="status"></p>
+            <button
+              id="import-grant"
+              class="button"
+              type="button"
+              data-i18n="transfer-grant-access"
+              hidden
+            >
+              Grant access and fetch
+            </button>
 
             <hr class="divider" />
 

@@ -20,9 +20,6 @@ import { initSettingsView } from "./views/settings-view.js";
 import { applyTranslations } from "../lib/i18n/dom.js";
 import { applyLanguageSetting, loadLocales, t, translate } from "../lib/i18n/index.js";
 
-const MINUTE_MS = 60 * 1000;
-const DEFAULT_CACHE_TTL_MINUTES = 15;
-
 class App implements AppContext {
   #state: AppState | null = null;
   #refreshing = false;
@@ -98,6 +95,10 @@ class App implements AppContext {
     return requestOrigins(originsForSubscriptions(enabled));
   }
 
+  /**
+   * `manual` (the refresh button) fetches everything past the short cooldown; otherwise only
+   * subscriptions that are due are fetched. Either way, large lists are fetched in batches.
+   */
   async refresh({ manual = false }: { manual?: boolean } = {}): Promise<void> {
     if (this.#refreshing) {
       return;
@@ -107,7 +108,7 @@ class App implements AppContext {
     this.renderAll();
 
     try {
-      const result = await sendRequest("refresh-request");
+      const result = await sendRequest(manual ? "refresh-request" : "refresh-due");
       if (!result.ok) {
         throw new LocalizedError(result.error.id, result.error.args);
       }
@@ -133,16 +134,12 @@ class App implements AppContext {
     await this.reload();
   }
 
-  /** Refreshes on open when there are enabled subscriptions and the cache is stale. */
-  async refreshIfStale(): Promise<void> {
-    const { subscriptions, refreshState, settings } = this.state;
-    if (!subscriptions.some((subscription) => subscription.enabled)) {
-      return;
-    }
-
-    const lastCompleted = Date.parse(refreshState.lastCompletedAt ?? "") || 0;
-    const ttlMinutes = settings.feed.cacheTtlMinutes || DEFAULT_CACHE_TTL_MINUTES;
-    if (Date.now() - lastCompleted > ttlMinutes * MINUTE_MS) {
+  /**
+   * On open, the stored feed is shown right away; only subscriptions whose check interval
+   * has passed are fetched. When none are due, the background sends no request at all.
+   */
+  async refreshDue(): Promise<void> {
+    if (this.state.subscriptions.some((subscription) => subscription.enabled)) {
       await this.refresh();
     }
   }
@@ -159,7 +156,7 @@ function handleFeedUpdated(app: App, event: FeedUpdatedEvent): void {
     .then(() => {
       if (event.error) {
         showError(translate(event.error));
-      } else if (event.reason === "alarm") {
+      } else if (event.reason === "alarm" && !event.progress && (event.fetched ?? 0) > 0) {
         showToast(t("app-toast-background-refreshed"));
       }
     })
@@ -217,7 +214,7 @@ async function start(): Promise<void> {
     }
   });
 
-  await app.refreshIfStale();
+  await app.refreshDue();
 }
 
 function startSafely(): void {

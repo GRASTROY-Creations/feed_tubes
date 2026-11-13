@@ -1,4 +1,4 @@
-import { LocalizedError, toLocalizedText } from "../errors.js";
+import { HostLimitError, LocalizedError, toLocalizedText } from "../errors.js";
 import { decodeHtmlEntities } from "../text.js";
 import { toIsoString } from "../time.js";
 import type {
@@ -235,9 +235,16 @@ async function fetchItems(
   try {
     items = await fetchFromFeed(channelId, subscription, context);
   } catch (feedError) {
+    // YouTube is paused or out of budget: the fallback would hit the same limit.
+    if (feedError instanceof HostLimitError) {
+      throw feedError;
+    }
     try {
       items = await fetchFromVideosTab(channelId, subscription, context);
     } catch (fallbackError) {
+      if (fallbackError instanceof HostLimitError) {
+        throw fallbackError;
+      }
       throw new LocalizedError(
         "youtube-both-failed",
         {

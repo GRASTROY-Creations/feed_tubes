@@ -43,14 +43,34 @@ export class HttpError extends LocalizedError {
   readonly status: number;
   /** The requested URL with credentials redacted. */
   readonly url: string;
+  /** Wait the server asked for with `Retry-After`, in milliseconds; `null` when absent. */
+  readonly retryAfterMs: number | null;
 
-  constructor(status: number, url: string) {
+  constructor(status: number, url: string, retryAfterMs: number | null = null) {
     const safeUrl = redactUrl(url);
     // The status is a code, not a quantity, so it is passed as text and never digit-grouped.
     super("fetch-http-error", { status: String(status), url: safeUrl });
     this.name = "HttpError";
     this.status = status;
     this.url = safeUrl;
+    this.retryAfterMs = retryAfterMs;
+  }
+}
+
+/**
+ * A request that was not sent because its host is paused (the host refused repeated requests)
+ * or has used up its hourly request budget. The source is retried later, not counted as failed.
+ */
+export class HostLimitError extends LocalizedError {
+  readonly host: string;
+  /** Time (ms since the epoch) from which the host may be asked again. */
+  readonly until: number;
+
+  constructor(reason: "paused" | "budget", host: string, until: number) {
+    super(reason === "paused" ? "fetch-host-paused" : "fetch-host-budget", { host });
+    this.name = "HostLimitError";
+    this.host = host;
+    this.until = until;
   }
 }
 

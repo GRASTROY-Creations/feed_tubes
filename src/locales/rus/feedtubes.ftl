@@ -37,6 +37,13 @@ feed-status-failures =
        *[other] Не удалось обновить { $count } источника.
     }
 feed-status-never-refreshed = Лента ещё не обновлялась.
+feed-status-queued =
+    { $count ->
+        [one] { $count } источник в очереди и загрузится в фоне.
+        [few] { $count } источника в очереди и загрузятся в фоне.
+        [many] { $count } источников в очереди и загрузятся в фоне.
+       *[other] { $count } источника в очереди и загрузятся в фоне.
+    }
 feed-error-permissions =
     { $count ->
         [one] Нужен доступ к { $count } источнику. Разрешите доступ, чтобы загрузить ленту полностью.
@@ -92,6 +99,7 @@ refresh-refreshed =
     }
 refresh-failed = с ошибкой: { $count }
 refresh-skipped = пропущено: { $count } (недавно обновлялись, { $wait })
+refresh-queued = в очереди на следующие проходы: { $count }
 refresh-error-permission = Для этого источника нужно разрешение на доступ к сайту.
 refresh-error-generic = Не удалось обновить этот источник.
 background-refresh-failed = Не удалось обновить.
@@ -111,12 +119,14 @@ settings-language = Язык
 settings-language-auto = Автоматически (язык браузера)
 settings-language-changed = Язык изменён.
 settings-fetching-title = Автоматическое обновление
-settings-fetching-interval = Интервал обновления
+settings-fetching-interval = Проверять каждую подписку
 settings-fetching-every1h = Каждый час
 settings-fetching-every3h = Каждые 3 часа
 settings-fetching-every6h = Каждые 6 часов
+settings-fetching-every12h = Каждые 12 часов
+settings-fetching-every24h = Каждые 24 часа
 settings-fetching-background = Обновлять ленту в фоне
-settings-fetching-hint = *Лента обновляется при открытии боковой панели, если кэш устарел.
+settings-fetching-hint = *Загружаются только подписки, у которых истёк интервал, в том числе при открытии боковой панели. Каналы без новых видео проверяются реже (не чаще раза в день). Большие списки загружаются небольшими частями.
 settings-fetching-schedule-updated = Расписание обновления изменено.
 settings-fetching-background-on = Фоновое обновление включено.
 settings-fetching-background-off = Фоновое обновление отключено.
@@ -168,6 +178,7 @@ subs-confirm-delete-disabled =
        *[other] Удалить { $count } отключённой подписки?
     }
 subs-disabled-deleted = Отключённые подписки удалены.
+subs-show-more = Показать ещё { $count } (осталось { $remaining })
 placeholder-youtube = UC… / URL канала / @handle
 placeholder-peertube = Handle канала или URL с /c/
 placeholder-odysee = @name:claimid
@@ -282,6 +293,8 @@ transfer-imported-toast = Подписки импортированы.
 transfer-import-failed = Не удалось импортировать файл.
 transfer-choose-file = Сначала выберите файл подписок.
 transfer-too-large = Файл больше допустимых 5 МБ.
+transfer-access-needed = Этим источникам нужен доступ к сайту, прежде чем их можно будет загрузить.
+transfer-grant-access = Разрешить доступ и загрузить
 transfer-choose-format = Выберите формат экспорта.
 transfer-exported = Файл { $filename } экспортирован.
 transfer-export-failed = Не удалось экспортировать подписки.
@@ -316,6 +329,8 @@ field-feed-url = URL ленты
 fetch-http-error = Запрос завершился ошибкой HTTP { $status } ({ $url }).
 fetch-network-error = Не удалось подключиться к { $url }: { $cause }
 fetch-network-fallback = ошибка сети
+fetch-host-paused = { $host } отклоняет запросы, поэтому FeedTubes ненадолго приостанавливает его.
+fetch-host-budget = Часовой лимит запросов к { $host } исчерпан; остальное загрузится позже.
 
 ## Platforms
 

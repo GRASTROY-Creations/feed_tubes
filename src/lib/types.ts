@@ -61,6 +61,8 @@ export interface CacheEntry {
   /** Why the last fetch failed, as a message id, so it is translated when shown. */
   error: LocalizedText | null;
   errorCode: CacheErrorCode;
+  /** Failed fetches in a row; each one doubles the wait before the next try. */
+  failures?: number;
 }
 
 /** Cache entries keyed by `subscriptionKey`. */
@@ -74,12 +76,12 @@ export interface Instance {
 }
 
 export interface RefreshSettings {
+  /** Each subscription is checked at most once per this interval (longer for quiet channels). */
   intervalMinutes: number;
   enabled: boolean;
 }
 
 export interface FeedSettings {
-  cacheTtlMinutes: number;
   itemsPerSource: number;
   concurrency: number;
   timeoutMs: number;
@@ -123,6 +125,8 @@ export interface RefreshState {
   running: boolean;
   startedAt: string | null;
   lastCompletedAt: string | null;
+  /** Due subscriptions still waiting for a later run (per-run limit or host limits). */
+  pending: number;
 }
 
 export interface AppState {

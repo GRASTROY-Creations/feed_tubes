@@ -1,5 +1,6 @@
 import { asArray, asRecord, isRecord } from "./guards.js";
 import { normalizeLanguageSetting } from "./i18n/index.js";
+import { normalizeHostLimits, type HostLimits } from "./throttle.js";
 import type { AppState, FeedCache, RefreshState, Settings, Subscription } from "./types.js";
 
 /**
@@ -8,7 +9,7 @@ import type { AppState, FeedCache, RefreshState, Settings, Subscription } from "
  */
 export const SCHEMA_VERSION = 2;
 export const REFRESH_INTERVAL_DEFAULT = 180;
-export const REFRESH_INTERVAL_OPTIONS: readonly number[] = [60, 180, 360];
+export const REFRESH_INTERVAL_OPTIONS: readonly number[] = [60, 180, 360, 720, 1440];
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   instances: [],
@@ -17,7 +18,6 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
     enabled: true,
   }),
   feed: Object.freeze({
-    cacheTtlMinutes: 15,
     itemsPerSource: 20,
     concurrency: 4,
     timeoutMs: 15_000,
@@ -40,6 +40,7 @@ export const DEFAULT_REFRESH_STATE: Readonly<RefreshState> = Object.freeze({
   running: false,
   startedAt: null,
   lastCompletedAt: null,
+  pending: 0,
 });
 
 const STATE_KEYS = ["schemaVersion", "subscriptions", "settings", "cache", "refreshState"] as const;
@@ -100,6 +101,15 @@ export async function saveCache(cache: FeedCache): Promise<void> {
 
 export async function saveRefreshState(refreshState: RefreshState): Promise<void> {
   await browser.storage.local.set({ refreshState });
+}
+
+export async function loadHostLimits(): Promise<HostLimits> {
+  const { hostLimits } = await browser.storage.local.get("hostLimits");
+  return normalizeHostLimits(hostLimits);
+}
+
+export async function saveHostLimits(hostLimits: HostLimits): Promise<void> {
+  await browser.storage.local.set({ hostLimits });
 }
 
 export async function clearCache(): Promise<void> {

@@ -38,6 +38,13 @@ feed-status-failures =
        *[other] { $count } izvora ne bylo možno obnoviti.
     }
 feed-status-never-refreshed = Lenta ješče ne byla obnovjena.
+feed-status-queued =
+    { $count ->
+        [one] { $count } izvor čeka i se zagruzi v fonu.
+        [few] { $count } izvora čekajut i se zagruzet v fonu.
+        [many] { $count } izvorov čeka i se zagruzi v fonu.
+       *[other] { $count } izvora čekajut i se zagruzet v fonu.
+    }
 feed-error-permissions =
     { $count ->
         [one] Potrěben jest dostup do { $count } izvora. Dajte dostup, da by zagruziti cělu lentu.
@@ -93,6 +100,7 @@ refresh-refreshed =
     }
 refresh-failed = { $count } neuspěšno
 refresh-skipped = { $count } propuščeno (nedavno obnovjene, { $wait })
+refresh-queued = { $count } čeka na slědujuće prohody
 refresh-error-permission = Za toj izvor jest potrěbno dozvoljenje dostupa do hosta.
 refresh-error-generic = Ne bylo možno obnoviti toj izvor.
 background-refresh-failed = Obnovjenje ne udalo se.
@@ -112,12 +120,14 @@ settings-language = Jezyk
 settings-language-auto = Avtomatično (jezyk pregledača)
 settings-language-changed = Jezyk izměnjeny.
 settings-fetching-title = Avtomatično polučenje
-settings-fetching-interval = Interval polučenja
+settings-fetching-interval = Prověrjati každu podpisku
 settings-fetching-every1h = Každy 1 čas
 settings-fetching-every3h = Každe 3 časa
 settings-fetching-every6h = Každyh 6 časov
+settings-fetching-every12h = Každyh 12 časov
+settings-fetching-every24h = Každyh 24 časov
 settings-fetching-background = Polučati lentu v pozadju
-settings-fetching-hint = *Lenta se polučaje pri otvorjenju bočnoj paneli, ako keš jest zastarěly.
+settings-fetching-hint = *Polučajut se jedino podpiski, kojih interval jest minul, takože pri otvorjenju bočnoj paneli. Kanaly bez novyh videa se prověrjajut rědše (najvyše jedin raz na denj). Velike spiski se zagružajut malymi častjami.
 settings-fetching-schedule-updated = Raspis obnovjenja izměnjeny.
 settings-fetching-background-on = Obnovjenje v pozadju vključeno.
 settings-fetching-background-off = Obnovjenje v pozadju izključeno.
@@ -169,6 +179,7 @@ subs-confirm-delete-disabled =
        *[other] Izbrisati { $count } izključenyh podpisok?
     }
 subs-disabled-deleted = Izključene podpiski izbrisane.
+subs-show-more = Pokazati ješče { $count } (ostaje { $remaining })
 placeholder-youtube = UC… / URL kanala / @handle
 placeholder-peertube = @handle kanala ili /c/ URL
 placeholder-odysee = @name:claimid
@@ -283,6 +294,8 @@ transfer-imported-toast = Podpiski importovane.
 transfer-import-failed = Ne bylo možno importovati fajl.
 transfer-choose-file = Najprvo izberite fajl podpisok.
 transfer-too-large = Fajl jest bolje veliky neželi limit 5 MB.
+transfer-access-needed = Tym izvoram jest potrěben dostup do hosta, prěžde neželi mogut byti polučene.
+transfer-grant-access = Dati dostup i polučiti
 transfer-choose-format = Izberite format eksporta.
 transfer-exported = Eksportovano { $filename }.
 transfer-export-failed = Ne bylo možno eksportovati podpiski.
@@ -317,6 +330,8 @@ field-feed-url = URL lenty
 fetch-http-error = Zapyt neuspěšny s HTTP { $status } ({ $url }).
 fetch-network-error = Ne bylo možno dostignuti { $url }: { $cause }
 fetch-network-fallback = pogrěška sěti
+fetch-host-paused = { $host } odkazuje zapyty, zato FeedTubes jego na několiko vrěmene pauzuje.
+fetch-host-budget = Časovy limit zapytov za { $host } jest dosegnuty; ostatok slěduje pozdněje.
 
 ## Platforms
 

@@ -34,9 +34,12 @@ import {
   withDisabled,
   type SettingsSection,
 } from "./shared.js";
-import { t } from "../../../lib/i18n/index.js";
+import { currentLanguage, t } from "../../../lib/i18n/index.js";
 
 const DEFAULT_PLATFORM: PlatformId = "youtube";
+/** Rows shown at first, and added by each click on "Show more". */
+const LIST_PAGE_SIZE = 100;
+const SEARCH_DEBOUNCE_MS = 150;
 
 export function initSubscriptionsSection(app: AppContext): SettingsSection {
   const elements = {
@@ -62,6 +65,9 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
   const submit = submitButtonOf(elements.form);
 
   let editingKey: string | null = null;
+  let visibleCount = LIST_PAGE_SIZE;
+  /** What the list was last built from; see `renderList`. */
+  let lastListInputs: readonly unknown[] | null = null;
 
   const subscriptions = (): Subscription[] => app.state.subscriptions;
   /** The subscription loaded into the form by "Edit", if any. */
@@ -207,9 +213,32 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
     );
   }
 
+  function showMoreButton(remaining: number): HTMLButtonElement {
+    const button = createEl("button", {
+      className: "button button--quiet",
+      text: t("subs-show-more", { count: Math.min(LIST_PAGE_SIZE, remaining), remaining }),
+      attrs: { type: "button" },
+    });
+    button.addEventListener("click", () => {
+      visibleCount += LIST_PAGE_SIZE;
+      renderList();
+    });
+    return button;
+  }
+
+  /**
+   * Builds at most `visibleCount` rows: thousands of rows with their listeners would make
+   * every render slow. Skipped entirely when nothing it shows has changed.
+   */
   function renderList(): void {
     const search = elements.search.value.trim().toLowerCase();
     const platform = elements.filter.value || ALL;
+    const inputs = [subscriptions(), search, platform, visibleCount, currentLanguage()] as const;
+    if (lastListInputs?.every((value, index) => value === inputs[index])) {
+      return;
+    }
+    lastListInputs = inputs;
+
     const values = subscriptions().filter((subscription) =>
       matchesFilters(subscription, search, platform)
     );
@@ -221,8 +250,19 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
       return;
     }
 
-    elements.list.replaceChildren(...values.map(subscriptionRow));
+    const visible = values.slice(0, visibleCount);
+    const remaining = values.length - visible.length;
+    elements.list.replaceChildren(
+      ...visible.map(subscriptionRow),
+      ...(remaining > 0 ? [showMoreButton(remaining)] : [])
+    );
     fitListToRows(elements.list);
+  }
+
+  /** A new search or filter starts from the first page again. */
+  function restartList(): void {
+    visibleCount = LIST_PAGE_SIZE;
+    renderList();
   }
 
   function render(): void {
@@ -374,8 +414,12 @@ export function initSubscriptionsSection(app: AppContext): SettingsSection {
   elements.section.addEventListener("toggle", () => {
     fitListToRows(elements.list);
   });
-  elements.search.addEventListener("input", renderList);
-  elements.filter.addEventListener("change", renderList);
+  let searchTimer: number | undefined;
+  elements.search.addEventListener("input", () => {
+    window.clearTimeout(searchTimer);
+    searchTimer = window.setTimeout(restartList, SEARCH_DEBOUNCE_MS);
+  });
+  elements.filter.addEventListener("change", restartList);
   elements.platform.addEventListener("change", updateForm);
   elements.cancel.addEventListener("click", reset);
 

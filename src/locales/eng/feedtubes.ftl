@@ -35,6 +35,11 @@ feed-status-failures =
        *[other] { $count } sources could not be refreshed.
     }
 feed-status-never-refreshed = Feed has not been refreshed yet.
+feed-status-queued =
+    { $count ->
+        [one] { $count } source is queued and loads in the background.
+       *[other] { $count } sources are queued and load in the background.
+    }
 feed-error-permissions =
     { $count ->
         [one] Access is needed for { $count } source. Grant access to load the full feed.
@@ -86,6 +91,11 @@ refresh-refreshed =
     }
 refresh-failed = { $count } failed
 refresh-skipped = { $count } skipped (refreshed recently, { $wait })
+refresh-queued =
+    { $count ->
+        [one] { $count } queued for the next batch
+       *[other] { $count } queued for the next batches
+    }
 refresh-error-permission = Host permission is required for this source.
 refresh-error-generic = Could not refresh this source.
 background-refresh-failed = Refresh failed.
@@ -105,12 +115,14 @@ settings-language = Language
 settings-language-auto = Automatic (browser language)
 settings-language-changed = Language changed.
 settings-fetching-title = Automatic Fetching
-settings-fetching-interval = Fetching interval
+settings-fetching-interval = Check each subscription
 settings-fetching-every1h = Every 1 hour
 settings-fetching-every3h = Every 3 hours
 settings-fetching-every6h = Every 6 hours
+settings-fetching-every12h = Every 12 hours
+settings-fetching-every24h = Every 24 hours
 settings-fetching-background = Fetch feed in the background
-settings-fetching-hint = *Feed is fetched on sidebar opening if cache is stale.
+settings-fetching-hint = *Only subscriptions whose interval has passed are fetched, also when the sidebar opens. Channels without recent uploads are checked less often (at most daily). Large lists load in small batches.
 settings-fetching-schedule-updated = Refresh schedule updated.
 settings-fetching-background-on = Background refresh enabled.
 settings-fetching-background-off = Background refresh disabled.
@@ -160,6 +172,7 @@ subs-confirm-delete-disabled =
        *[other] Delete { $count } disabled subscriptions?
     }
 subs-disabled-deleted = Disabled subscriptions deleted.
+subs-show-more = Show { $count } more ({ $remaining } remaining)
 placeholder-youtube = UC… / channel URL / @handle
 placeholder-peertube = Channel handle or /c/ URL
 placeholder-odysee = @name:claimid
@@ -268,6 +281,8 @@ transfer-imported-toast = Subscriptions imported.
 transfer-import-failed = Could not import the file.
 transfer-choose-file = Choose a subscription file first.
 transfer-too-large = The file is larger than the 5 MB limit.
+transfer-access-needed = These sources need host access before they can be fetched.
+transfer-grant-access = Grant access and fetch
 transfer-choose-format = Choose an export format.
 transfer-exported = Exported { $filename }.
 transfer-export-failed = Could not export subscriptions.
@@ -302,6 +317,8 @@ field-feed-url = Feed URL
 fetch-http-error = Request failed with HTTP { $status } ({ $url }).
 fetch-network-error = Could not reach { $url }: { $cause }
 fetch-network-fallback = network error
+fetch-host-paused = { $host } is refusing requests, so FeedTubes pauses it for a while.
+fetch-host-budget = The hourly request limit for { $host } is reached; the rest follows later.
 
 ## Platforms
 

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { HttpError, NetworkError } from "../src/lib/errors.js";
-import { fetchJson, fetchText, postJson } from "../src/lib/fetch.js";
+import { fetchJson, fetchText, parseRetryAfter, postJson, retryDelayMs } from "../src/lib/fetch.js";
 import { rejectionOf } from "./fixtures.js";
 
 const originalFetch = globalThis.fetch;
@@ -118,5 +118,32 @@ describe("fetchJson", () => {
   it("parses JSON bodies", async () => {
     stubFetch([ok('{"data":[1]}')]);
     expect(await fetchJson("https://example.com/")).toEqual({ data: [1] });
+  });
+});
+
+describe("rate limits", () => {
+  it("does not retry 429 and keeps the server's Retry-After", async () => {
+    const stub = stubFetch([
+      () => new Response("", { status: 429, headers: { "Retry-After": "120" } }),
+      ok("never"),
+    ]);
+    const error = await rejectionOf(fetchText("https://example.com/"));
+    expect(error).toBeInstanceOf(HttpError);
+    expect((error as HttpError).retryAfterMs).toBe(120_000);
+    expect(stub.calls()).toBe(1);
+  });
+
+  it("reads Retry-After as seconds or as a date", () => {
+    const now = Date.parse("2026-11-13T12:00:00Z");
+    expect(parseRetryAfter("30", now)).toBe(30_000);
+    expect(parseRetryAfter("Fri, 13 Nov 2026 12:01:00 GMT", now)).toBe(60_000);
+    expect(parseRetryAfter("soon", now)).toBeNull();
+    expect(parseRetryAfter(null, now)).toBeNull();
+  });
+
+  it("backs off exponentially with jitter", () => {
+    expect(retryDelayMs(0, () => 0)).toBe(500);
+    expect(retryDelayMs(2, () => 0)).toBe(2000);
+    expect(retryDelayMs(0, () => 0.99)).toBeLessThan(750);
   });
 });

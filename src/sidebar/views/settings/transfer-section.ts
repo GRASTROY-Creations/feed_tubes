@@ -7,6 +7,7 @@ import {
   parseSubscriptionsFile,
   type ImportResult,
 } from "../../../lib/import-export.js";
+import { missingOrigins } from "../../../lib/permissions.js";
 import { isMergeMode, mergeSubscriptions } from "../../../lib/subscriptions.js";
 import type { AppContext } from "../../app-context.js";
 import { showError, showToast } from "../../components/toast.js";
@@ -55,6 +56,7 @@ export function initTransferSection(app: AppContext): SettingsSection {
     importMode: getElement("import-mode", HTMLSelectElement),
     importButton: getElement("import-button", HTMLButtonElement),
     importReport: getElement("import-report", HTMLParagraphElement),
+    importGrant: getElement("import-grant", HTMLButtonElement),
     exportFormat: getElement("export-format", HTMLSelectElement),
     exportScope: getElement("export-scope", HTMLSelectElement),
     exportButton: getElement("export-button", HTMLButtonElement),
@@ -88,7 +90,16 @@ export function initTransferSection(app: AppContext): SettingsSection {
       const next = mergeSubscriptions(current, parsed.subscriptions, mode);
       await app.persistSubscriptions(next);
       elements.importFile.value = "";
-      setMessage(elements.importReport, importReport(parsed, next.length));
+
+      // The access prompt needs a fresh click: the one on "Import" was used up by reading
+      // the file. Without access, every imported source would fail on the next refresh.
+      const missing = await missingOrigins(next.filter((subscription) => subscription.enabled));
+      const report = importReport(parsed, next.length);
+      if (missing.length > 0) {
+        report.push(t("transfer-access-needed"));
+      }
+      setMessage(elements.importReport, report);
+      elements.importGrant.hidden = missing.length === 0;
       showToast(t("transfer-imported-toast"));
     } catch (error) {
       reportError(errorMessage(error, t("transfer-import-failed")));
@@ -106,6 +117,24 @@ export function initTransferSection(app: AppContext): SettingsSection {
       return;
     }
     void withDisabled(elements.importButton, () => importFile(file));
+  });
+
+  elements.importGrant.addEventListener("click", () => {
+    // `requestPermissions` is called before any await, while the click still counts.
+    const access = app.requestPermissions();
+    void withDisabled(elements.importGrant, async () => {
+      try {
+        if (!(await access)) {
+          showError(t("feed-toast-access-denied"));
+          return;
+        }
+        elements.importGrant.hidden = true;
+        showToast(t("feed-toast-access-granted"));
+        await app.refresh({ manual: true });
+      } catch {
+        showError(t("feed-toast-access-failed"));
+      }
+    });
   });
 
   elements.exportButton.addEventListener("click", () => {

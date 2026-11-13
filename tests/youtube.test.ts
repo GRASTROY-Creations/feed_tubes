@@ -1,12 +1,20 @@
 import { describe, expect, it } from "bun:test";
-import { parseChannelVideos, parseRelativeAge } from "../src/lib/platforms/youtube-innertube.js";
+import {
+  clientVersion,
+  FALLBACK_CLIENT_VERSION,
+  fetchChannelVideos,
+  parseChannelVideos,
+  parseClientVersion,
+  parseRelativeAge,
+  resetClientVersion,
+} from "../src/lib/platforms/youtube-innertube.js";
 import {
   needsYouTubeLookup,
   toYouTubeHandle,
   youtubeChannelPageUrl,
 } from "../src/lib/platforms/youtube-urls.js";
 import { resolveYouTubeChannel, youtubeAdapter } from "../src/lib/platforms/youtube.js";
-import type { AdapterContext } from "../src/lib/types.js";
+import type { AdapterContext, FetchOptions } from "../src/lib/types.js";
 import { apiKeys, at, rejectionOf, subscriptionOf } from "./fixtures.js";
 
 const CHANNEL_ID = "UCb2e-ivDST748PmPJOn4DnA";
@@ -274,5 +282,53 @@ describe("youtubeAdapter", () => {
     expect(error.message).toBe(
       "YouTube feed failed (Request failed with HTTP 404.), and so did the fallback (blocked)."
     );
+  });
+});
+
+describe("InnerTube client identity", () => {
+  const swData = `)]}'\n[["yt.sw.adr",null,[[1,"en","US",null,"2.20261110.01.00",null]]]]`;
+
+  it("reads the current web client version", () => {
+    expect(parseClientVersion(swData)).toBe("2.20261110.01.00");
+    expect(parseClientVersion("nothing here")).toBe("");
+  });
+
+  it("sends the looked-up version in the body and the X-YouTube-Client headers", async () => {
+    resetClientVersion();
+    const calls: { body: unknown; options: FetchOptions | undefined }[] = [];
+    const context = {
+      fetchText: () => Promise.resolve(swData),
+      postJson: (_url: string, body: unknown, options?: FetchOptions) => {
+        calls.push({ body, options });
+        return Promise.resolve({});
+      },
+      timeoutMs: 1000,
+    };
+
+    await fetchChannelVideos("UC_x5XG1OV2P6uZZ5FSM9Ttw", context);
+    const call = at(calls, 0);
+    expect(call.options?.headers).toEqual({
+      "X-YouTube-Client-Name": "1",
+      "X-YouTube-Client-Version": "2.20261110.01.00",
+    });
+    expect(call.body).toMatchObject({
+      context: { client: { clientName: "WEB", clientVersion: "2.20261110.01.00" } },
+    });
+  });
+
+  it("falls back to the built-in version when the lookup fails, and asks once", async () => {
+    resetClientVersion();
+    let lookups = 0;
+    const context = {
+      fetchText: () => {
+        lookups += 1;
+        return Promise.reject(new Error("offline"));
+      },
+      postJson: () => Promise.resolve({}),
+      timeoutMs: 1000,
+    };
+    expect(await clientVersion(context)).toBe(FALLBACK_CLIENT_VERSION);
+    expect(await clientVersion(context)).toBe(FALLBACK_CLIENT_VERSION);
+    expect(lookups).toBe(1);
   });
 });

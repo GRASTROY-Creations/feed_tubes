@@ -12,7 +12,7 @@ import {
 import type { AppContext, View } from "../app-context.js";
 import { showError, showToast } from "../components/toast.js";
 import { createVideoCard } from "../components/video-card.js";
-import { t, translate } from "../../lib/i18n/index.js";
+import { currentLanguage, t, translate } from "../../lib/i18n/index.js";
 
 /** Videos shown at first, and added by each click on "Load more". */
 const PAGE_SIZE = 30;
@@ -85,6 +85,29 @@ function flattenItems(cache: FeedCache, subscriptions: readonly Subscription[]):
   return items.sort(byPublishedDesc);
 }
 
+/** Returns a check that is true when `keys` differ (by identity) from the previous call. */
+function changeTracker(): (keys: readonly unknown[]) => boolean {
+  let previous: readonly unknown[] | null = null;
+  return (keys) => {
+    const changed =
+      previous?.length !== keys.length || keys.some((value, index) => value !== previous?.[index]);
+    previous = keys;
+    return changed;
+  };
+}
+
+/** Remembers the last result: `compute` runs only when one of `keys` changed. */
+function lastResult<R>(): (keys: readonly unknown[], compute: () => R) => R {
+  const changed = changeTracker();
+  let result: R | undefined;
+  return (keys, compute) => {
+    if (changed(keys) || result === undefined) {
+      result = compute();
+    }
+    return result;
+  };
+}
+
 function withFallback(options: readonly SelectOption[], allLabel: string): SelectOption[] {
   return [{ value: ALL, label: allLabel }, ...options];
 }
@@ -109,21 +132,42 @@ export function initFeedView(app: AppContext): View {
   let visibleCount = PAGE_SIZE;
   let emptyAction: EmptyAction = "settings";
 
+  // With thousands of subscriptions, the filters and the merged item list are expensive.
+  // Both are rebuilt only when what they are built from changes (a reload replaces the
+  // stored objects), not on every render. Translated labels are part of the results, so the
+  // language is part of every key.
+  const platformChoices = lastResult<SelectOption[]>();
+  const channelChoices = lastResult<SelectOption[]>();
+  const feedItems = lastResult<FeedEntry[]>();
+  // Filling a `<select>` is skipped when its options and selection are unchanged.
+  const platformFilterChanged = changeTracker();
+  const channelFilterChanged = changeTracker();
+
   function renderFilters(subscriptions: readonly Subscription[]): void {
     const { ui } = app.state.settings;
-    fillSelect(
-      elements.platformFilter,
-      withFallback(platformOptions(subscriptions), t("common-all-platforms")),
-      { selectedValue: ui.platformFilter, fallback: ALL }
+    const language = currentLanguage();
+
+    const platforms = platformChoices([subscriptions, language], () =>
+      withFallback(platformOptions(subscriptions), t("common-all-platforms"))
     );
-    fillSelect(
-      elements.channelFilter,
-      withFallback(
-        channelOptions(subscriptions, elements.platformFilter.value),
-        t("common-all-channels")
-      ),
-      { selectedValue: ui.channelFilter, fallback: ALL }
+    if (platformFilterChanged([platforms, ui.platformFilter])) {
+      fillSelect(elements.platformFilter, platforms, {
+        selectedValue: ui.platformFilter,
+        fallback: ALL,
+      });
+    }
+
+    // The platform select falls back to "all" when the stored platform has no subscriptions.
+    const platform = elements.platformFilter.value || ALL;
+    const channels = channelChoices([subscriptions, platform, language], () =>
+      withFallback(channelOptions(subscriptions, platform), t("common-all-channels"))
     );
+    if (channelFilterChanged([channels, ui.channelFilter])) {
+      fillSelect(elements.channelFilter, channels, {
+        selectedValue: ui.channelFilter,
+        fallback: ALL,
+      });
+    }
   }
 
   function renderStatus(entries: readonly CacheEntry[]): void {
@@ -131,8 +175,10 @@ export function initFeedView(app: AppContext): View {
     const failures = entries.filter((entry) => entry.error).length;
 
     let status = "";
-    if (app.refreshing) {
+    if (app.refreshing || refreshState.running) {
       status = t("feed-status-refreshing");
+    } else if (refreshState.pending > 0) {
+      status = t("feed-status-queued", { count: refreshState.pending });
     } else if (failures > 0) {
       status = t("feed-status-failures", { count: failures });
     } else if (subscriptions.length > 0 && !refreshState.lastCompletedAt) {
@@ -218,7 +264,9 @@ export function initFeedView(app: AppContext): View {
     renderStatus(entries);
     renderErrors(entries);
 
-    const allItems = flattenItems(cache, subscriptions);
+    const allItems = feedItems([cache, subscriptions, currentLanguage()], () =>
+      flattenItems(cache, subscriptions)
+    );
     const platformFilter = elements.platformFilter.value || ALL;
     const channelFilter = elements.channelFilter.value || ALL;
     const filteredItems = allItems.filter(
