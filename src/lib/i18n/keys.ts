@@ -52,6 +52,7 @@ export type MessageKey =
   | "stream-untitled"
   | "app-error-refresh-failed"
   | "app-toast-background-refreshed"
+  | "app-toast-close"
   | "app-error-reload-failed"
   | "app-error-access-removed"
   | "refresh-no-subscriptions"

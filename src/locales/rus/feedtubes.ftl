@@ -82,6 +82,7 @@ stream-untitled = Эфир без названия
 
 app-error-refresh-failed = Не удалось обновить ленты.
 app-toast-background-refreshed = Лента обновлена в фоне.
+app-toast-close = Закрыть уведомление
 app-error-reload-failed = Не удалось перезагрузить ленту.
 app-error-access-removed = Доступ к сайтам был отозван. Некоторым источникам снова нужен доступ.
 

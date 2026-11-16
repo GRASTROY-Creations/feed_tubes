@@ -524,6 +524,17 @@
       </section>
     </main>
 
-    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <div id="toast" class="toast" hidden>
+      <span id="toast-message" class="toast__message" role="status" aria-live="polite"></span>
+      <button
+        id="toast-close"
+        class="toast__close"
+        type="button"
+        aria-label="Close notification"
+        data-i18n-aria-label="app-toast-close"
+      >
+        ×
+      </button>
+    </div>
   </body>
 </html>

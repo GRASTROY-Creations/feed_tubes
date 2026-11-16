@@ -76,6 +76,7 @@ stream-untitled = Stream ohne Titel
 
 app-error-refresh-failed = Feeds konnten nicht aktualisiert werden.
 app-toast-background-refreshed = Feed im Hintergrund aktualisiert.
+app-toast-close = Benachrichtigung schließen
 app-error-reload-failed = Feed konnte nicht neu geladen werden.
 app-error-access-removed = Host-Zugriff wurde entfernt. Einige Quellen benötigen erneut Zugriff.
 

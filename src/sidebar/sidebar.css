@@ -627,7 +627,10 @@ select {
   bottom: 12px;
   left: 12px;
   z-index: 10;
-  padding: 9px 11px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 6px 9px 11px;
   background: var(--ytf-text);
   border-radius: var(--ytf-radius-small);
   box-shadow: 0 4px 16px rgb(0 0 0 / 24%);
@@ -639,6 +642,41 @@ select {
 .toast--error {
   background: var(--ytf-danger);
   color: #ffffff;
+}
+
+.toast__message {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast__close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ytf-radius-small);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+.toast__close:hover {
+  background: rgb(255 255 255 / 18%);
+  opacity: 1;
+}
+
+.toast__close:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+  opacity: 1;
 }
 
 .hidden-download {

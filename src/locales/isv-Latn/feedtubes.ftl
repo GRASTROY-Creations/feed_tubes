@@ -83,6 +83,7 @@ stream-untitled = Translacija bez nazvy
 
 app-error-refresh-failed = Ne bylo možno obnoviti lenty.
 app-toast-background-refreshed = Lenta obnovjena v pozadju.
+app-toast-close = Zatvoriti obvěščenje
 app-error-reload-failed = Ne bylo možno nanovo zagruziti lentu.
 app-error-access-removed = Dostup do hosta byl odstranjeny. Někoje izvory potrěbujut dostup ponovno.
 
