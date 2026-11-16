@@ -129,7 +129,7 @@ describe("rate limits", () => {
     ]);
     const error = await rejectionOf(fetchText("https://example.com/"));
     expect(error).toBeInstanceOf(HttpError);
-    expect((error as HttpError).retryAfterMs).toBe(120_000);
+    expect(error).toHaveProperty("retryAfterMs", 120_000);
     expect(stub.calls()).toBe(1);
   });
 
