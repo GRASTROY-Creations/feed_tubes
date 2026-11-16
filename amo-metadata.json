@@ -11,6 +11,6 @@
     "en-US": "One sidebar for the channels you follow on YouTube, PeerTube, Odysee, Twitch and more. No account, no algorithm, no tracking — just the newest videos from your subscriptions."
   },
   "description": {
-    "en-US": "FeedTubes brings PeerTube, Odysee, Rutube, Dailymotion, D.Tube, Pixabay, goodgame.ru, VK Video, Bilibili and RSS/Atom subscriptions, plus YouTube, into one Firefox sidebar. No account, no algorithm, no tracking, no server."
+    "en-US": "FeedTubes brings PeerTube, Odysee, Rutube, Dailymotion, D.Tube, Pixabay, goodgame, VK Video, Bilibili and RSS/Atom subscriptions, plus YouTube, into one Firefox sidebar. No account, no algorithm, no tracking, no server."
   }
 }
