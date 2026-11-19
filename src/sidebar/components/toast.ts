@@ -1,6 +1,7 @@
 import { getElement } from "../../lib/dom.js";
 
 const DEFAULT_DURATION_MS = 4000;
+const ERROR_DURATION_MS = 10_000;
 
 let hideTimer: number | undefined;
 let closeBound = false;
@@ -24,10 +25,7 @@ function bindCloseButton(): void {
   getElement("toast-close", HTMLButtonElement).addEventListener("click", hideToast);
 }
 
-export function showToast(
-  message: string,
-  { duration = DEFAULT_DURATION_MS, error = false }: ToastOptions = {}
-): void {
+export function showToast(message: string, { duration, error = false }: ToastOptions = {}): void {
   const element = getElement("toast", HTMLDivElement);
   const messageElement = getElement("toast-message", HTMLSpanElement);
 
@@ -38,9 +36,10 @@ export function showToast(
   element.hidden = false;
   bindCloseButton();
 
-  // Errors stay visible until the user dismisses them; ordinary confirmations still auto-hide.
-  if (!error && duration > 0) {
-    hideTimer = window.setTimeout(hideToast, duration);
+  // Errors auto-hide after 10 seconds; pass duration: 0 to keep one visible until dismissed.
+  const timeout = duration ?? (error ? ERROR_DURATION_MS : DEFAULT_DURATION_MS);
+  if (timeout > 0) {
+    hideTimer = window.setTimeout(hideToast, timeout);
   }
 }
 
