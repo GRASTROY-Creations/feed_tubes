@@ -1,7 +1,7 @@
 import { getElement } from "../../lib/dom.js";
 
 const DEFAULT_DURATION_MS = 4000;
-const ERROR_DURATION_MS = 10_000;
+export const ERROR_DURATION_MS = 10_000;
 
 let hideTimer: number | undefined;
 let closeBound = false;

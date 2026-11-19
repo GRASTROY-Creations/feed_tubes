@@ -649,7 +649,8 @@ select {
   min-width: 0;
 }
 
-.toast__close {
+.toast__close,
+.banner__close {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -668,12 +669,19 @@ select {
   opacity: 0.75;
 }
 
-.toast__close:hover {
+.banner__close {
+  align-self: flex-start;
+  margin-left: auto;
+}
+
+.toast__close:hover,
+.banner__close:hover {
   background: rgb(255 255 255 / 18%);
   opacity: 1;
 }
 
-.toast__close:focus-visible {
+.toast__close:focus-visible,
+.banner__close:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 1px;
   opacity: 1;

@@ -10,7 +10,7 @@ import {
   type Subscription,
 } from "../../lib/types.js";
 import type { AppContext, View } from "../app-context.js";
-import { showError, showToast } from "../components/toast.js";
+import { ERROR_DURATION_MS, showError, showToast } from "../components/toast.js";
 import { createVideoCard } from "../components/video-card.js";
 import { currentLanguage, t, translate } from "../../lib/i18n/index.js";
 
@@ -118,6 +118,7 @@ export function initFeedView(app: AppContext): View {
     channelFilter: getElement("channel-filter", HTMLSelectElement),
     feedError: getElement("feed-error", HTMLDivElement),
     feedErrorText: getElement("feed-error-text", HTMLSpanElement),
+    feedErrorClose: getElement("feed-error-close", HTMLButtonElement),
     grantPermissions: getElement("grant-permissions", HTMLButtonElement),
     feedStatus: getElement("feed-status", HTMLParagraphElement),
     feedList: getElement("feed-list", HTMLDivElement),
@@ -131,6 +132,11 @@ export function initFeedView(app: AppContext): View {
 
   let visibleCount = PAGE_SIZE;
   let emptyAction: EmptyAction = "settings";
+  let errorHideTimer: number | undefined;
+  let dismissedErrorSignature: string | null = null;
+  let timerSignature: string | null = null;
+  let currentErrorSignature: string | null = null;
+  let wasRefreshing = false;
 
   // With thousands of subscriptions, the filters and the merged item list are expensive.
   // Both are rebuilt only when what they are built from changes (a reload replaces the
@@ -189,21 +195,67 @@ export function initFeedView(app: AppContext): View {
     setText(elements.lastUpdated, formatLastUpdated(refreshState.lastCompletedAt));
   }
 
+  function hideFeedError(): void {
+    window.clearTimeout(errorHideTimer);
+    errorHideTimer = undefined;
+    timerSignature = null;
+    dismissedErrorSignature = currentErrorSignature;
+    elements.feedError.hidden = true;
+  }
+
   function renderErrors(entries: readonly CacheEntry[]): void {
     const errors = entries.filter((entry) => entry.error);
     const permissionErrors = errors.filter((entry) => entry.errorCode === "permission-required");
+    const refreshing = app.refreshing || app.state.refreshState.running;
 
-    elements.feedError.hidden = errors.length === 0;
-    elements.grantPermissions.hidden = permissionErrors.length === 0;
+    // A new refresh should be able to report errors that were previously dismissed.
+    if (refreshing && !wasRefreshing) {
+      dismissedErrorSignature = null;
+    }
+    wasRefreshing = refreshing;
 
+    let errorText = "";
     if (permissionErrors.length > 0) {
-      setText(
-        elements.feedErrorText,
-        t("feed-error-permissions", { count: permissionErrors.length })
-      );
+      errorText = t("feed-error-permissions", { count: permissionErrors.length });
     } else if (errors[0]?.error) {
       // Stored as a message id, so it follows a language change without a new fetch.
-      setText(elements.feedErrorText, translate(errors[0].error));
+      errorText = translate(errors[0].error);
+    }
+    currentErrorSignature = errors.length === 0 ? null : `${permissionErrors.length}|${errorText}`;
+
+    setText(elements.feedErrorText, errorText);
+    elements.grantPermissions.hidden = permissionErrors.length === 0;
+
+    if (errors.length === 0) {
+      window.clearTimeout(errorHideTimer);
+      errorHideTimer = undefined;
+      timerSignature = null;
+      dismissedErrorSignature = null;
+      elements.feedError.hidden = true;
+      return;
+    }
+
+    const shouldShow = currentErrorSignature !== dismissedErrorSignature;
+    elements.feedError.hidden = !shouldShow;
+
+    // Permission errors keep their "Grant access" action visible until dismissed manually.
+    if (!shouldShow || permissionErrors.length > 0) {
+      window.clearTimeout(errorHideTimer);
+      errorHideTimer = undefined;
+      timerSignature = null;
+      return;
+    }
+
+    // Restart only for a new error; unrelated rerenders must not extend the 10 seconds.
+    if (timerSignature !== currentErrorSignature) {
+      window.clearTimeout(errorHideTimer);
+      timerSignature = currentErrorSignature;
+      errorHideTimer = window.setTimeout(() => {
+        dismissedErrorSignature = currentErrorSignature;
+        timerSignature = null;
+        errorHideTimer = undefined;
+        elements.feedError.hidden = true;
+      }, ERROR_DURATION_MS);
     }
   }
 
@@ -345,6 +397,7 @@ export function initFeedView(app: AppContext): View {
   }
 
   elements.grantPermissions.addEventListener("click", () => void grantPermissions());
+  elements.feedErrorClose.addEventListener("click", hideFeedError);
 
   return { render };
 }
