@@ -62,8 +62,8 @@ const DAY_MS = 24 * HOUR_MS;
  * Platforms may ask for longer (`refreshCooldownMs` in the registry) after a successful fetch.
  */
 export const REFRESH_COOLDOWN_MS = 5 * MINUTE_MS;
-/** Sources fetched per run. Large lists are worked through over several runs. */
-export const MAX_SOURCES_PER_RUN = 100;
+/** Sources fetched per run. Small chunks finish inside the background event page's lifetime. */
+export const MAX_SOURCES_PER_RUN = 20;
 /** Finished sources between two progress reports (saves and sidebar updates). */
 export const PROGRESS_EVERY = 1;
 /** Longest wait before a failing source is tried again. */
