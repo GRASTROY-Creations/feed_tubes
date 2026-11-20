@@ -65,7 +65,7 @@ export const REFRESH_COOLDOWN_MS = 5 * MINUTE_MS;
 /** Sources fetched per run. Large lists are worked through over several runs. */
 export const MAX_SOURCES_PER_RUN = 100;
 /** Finished sources between two progress reports (saves and sidebar updates). */
-export const PROGRESS_EVERY = 25;
+export const PROGRESS_EVERY = 1;
 /** Longest wait before a failing source is tried again. */
 export const MAX_FAILURE_BACKOFF_MS = DAY_MS;
 /** Channels without uploads for this long are checked at most once a day. */

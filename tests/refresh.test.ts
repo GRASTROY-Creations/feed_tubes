@@ -377,7 +377,7 @@ describe("due selection and batches", () => {
     expect(result.cache[subscriptionKey(source)]?.fetchedAt).toBe("");
   });
 
-  it("reports progress every PROGRESS_EVERY sources", async () => {
+  it("reports progress after each finished source", async () => {
     const subscriptions = Array.from({ length: PROGRESS_EVERY * 2 + 3 }, (_, index) =>
       channel(index)
     );
@@ -389,7 +389,9 @@ describe("due selection and batches", () => {
         expect(Object.keys(cache)).toHaveLength(subscriptions.length);
       },
     });
-    expect(reports).toEqual([PROGRESS_EVERY, PROGRESS_EVERY * 2]);
+    expect(reports).toEqual(
+      Array.from({ length: subscriptions.length - 1 }, (_, index) => index + PROGRESS_EVERY)
+    );
   });
 });
 

@@ -39,6 +39,9 @@ const localesReady = loadLocales().catch((error: unknown) => {
 
 type RefreshResponse = RequestResponses["refresh-request"];
 
+/** Minimum gap between progress saves, so a fast run cannot hammer storage and the sidebar. */
+const PROGRESS_SAVE_MIN_GAP_MS = 500;
+
 /** The refresh in flight, shared by every caller so feeds are never fetched twice at once. */
 let activeRefresh: Promise<RefreshResponse> | null = null;
 
@@ -79,6 +82,7 @@ async function performRefresh(reason: RefreshReason, mode: RefreshMode): Promise
   // are stored, so they hold across runs and background restarts.
   const throttle = createHostThrottle(hostLimits);
   const persistThrottle = (): Promise<void> => saveHostLimits(throttle.snapshot());
+  let lastProgressAt = 0;
 
   try {
     const result = await refreshFeeds({
@@ -90,6 +94,11 @@ async function performRefresh(reason: RefreshReason, mode: RefreshMode): Promise
       ...throttle.wrap({ fetchText, fetchJson, postJson }),
       hostBlockedUntil: (subscription) => throttle.blockedUntil(hostForSubscription(subscription)),
       onProgress: async ({ cache, done, planned }) => {
+        const now = Date.now();
+        if (now - lastProgressAt < PROGRESS_SAVE_MIN_GAP_MS) {
+          return;
+        }
+        lastProgressAt = now;
         await Promise.all([saveCurrentCache(cache), persistThrottle()]);
         await broadcast({ type: "feed-updated", reason, progress: { done, planned } });
       },
