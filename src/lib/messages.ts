@@ -45,6 +45,9 @@ export function isRequest(message: unknown): message is Request {
 
 /** Sends a request to the background script and resolves with its typed response. */
 export async function sendRequest<T extends RequestType>(type: T): Promise<RequestResponses[T]> {
+  // Wake the event page first: the auto-opened sidebar can send refresh-due
+  // before Firefox has finished registering the background message listener.
+  await browser.runtime.getBackgroundPage();
   const request: Request<T> = { type };
   return (await browser.runtime.sendMessage(request)) as RequestResponses[T];
 }
