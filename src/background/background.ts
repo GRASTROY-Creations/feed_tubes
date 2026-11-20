@@ -77,6 +77,9 @@ function continuationTime(result: RefreshResult, now: number): number | null {
 }
 
 async function performRefresh(reason: RefreshReason, mode: RefreshMode): Promise<RefreshResponse> {
+  // A freshly loaded background page must finish clearing a previous page's stale run before
+  // this run marks itself as active.
+  await startupCleanup;
   const [state, hostLimits] = await Promise.all([loadState(), loadHostLimits(), localesReady]);
   applyLanguageSetting(state.settings.ui.language);
   const startedAt = new Date().toISOString();
@@ -217,16 +220,27 @@ browser.alarms.onAlarm.addListener((alarm) => {
  */
 async function clearInterruptedRun(): Promise<void> {
   const { refreshState } = await loadState();
-  if (refreshState.running && !activeRefresh) {
+  if (refreshState.running) {
     await saveRefreshState({ ...refreshState, running: false, startedAt: null });
   }
 }
 
-function onLifecycleEvent(): void {
-  Promise.all([rescheduleAlarm(), clearInterruptedRun()]).catch((error: unknown) => {
-    console.warn("FeedTubes could not schedule the refresh alarm.", error);
-  });
+function startupTasks(): Promise<void> {
+  return Promise.all([rescheduleAlarm(), clearInterruptedRun()]).then(
+    () => undefined,
+    (error: unknown) => {
+      console.warn("FeedTubes could not complete its startup tasks.", error);
+    }
+  );
 }
 
-browser.runtime.onInstalled.addListener(onLifecycleEvent);
-browser.runtime.onStartup.addListener(onLifecycleEvent);
+// Runs on every background-page load, not only on install/browser startup: the event page can
+// be recycled at any time. Every run waits for it before claiming the `running` flag.
+const startupCleanup = startupTasks();
+
+browser.runtime.onInstalled.addListener(() => {
+  void startupCleanup;
+});
+browser.runtime.onStartup.addListener(() => {
+  void startupCleanup;
+});
