@@ -29,7 +29,7 @@ feed-grant-access = Dati dostup
 feed-requesting = Zapytyvanje…
 feed-load-more = Zagruziti ješče
 feed-load-more-count = Zagruziti ješče { $count } (ostaje { $remaining })
-feed-status-refreshing = Obnovjenje lent…
+feed-status-refreshing = Obnovjenje lenty
 feed-status-failures =
     { $count ->
         [one] { $count } izvor ne bylo možno obnoviti.
@@ -55,10 +55,10 @@ feed-error-permissions =
 feed-empty-no-subscriptions-title = Ješče nema podpisok
 feed-empty-no-subscriptions-text = Dodajte kanal ili importujte fajl podpisok.
 feed-empty-no-subscriptions-button = Otvoriti nastavjenja
-feed-empty-refreshing-title = Obnovjenje lent
-feed-empty-refreshing-text = Vaše podpiski se prověrjajut na nove video.
+feed-empty-refreshing-title = Obnovjenje lenty
+feed-empty-refreshing-text = Vaše podpiski se prověrjajut na nove video...
 feed-empty-no-videos-title = Ješče nema video
-feed-empty-no-videos-text = Polučite najnovše video iz vaših podpisok.
+feed-empty-no-videos-text = Polučite najnovše video!
 feed-empty-no-videos-button = Polučiti teper
 feed-empty-no-matches-title = Nema odpovědnyh video
 feed-empty-no-matches-text = Poprobujte drugy filter platformy ili kanala.

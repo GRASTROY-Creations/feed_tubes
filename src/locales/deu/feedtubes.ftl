@@ -28,7 +28,7 @@ feed-grant-access = Zugriff erlauben
 feed-requesting = Wird angefordert…
 feed-load-more = Mehr laden
 feed-load-more-count = { $count } weitere laden ({ $remaining } übrig)
-feed-status-refreshing = Feeds werden aktualisiert…
+feed-status-refreshing = Feed wird aktualisiert
 feed-status-failures =
     { $count ->
         [one] { $count } Quelle konnte nicht aktualisiert werden.
@@ -48,10 +48,10 @@ feed-error-permissions =
 feed-empty-no-subscriptions-title = Noch keine Abonnements
 feed-empty-no-subscriptions-text = Fügen Sie einen Kanal hinzu oder importieren Sie eine Abonnement-Datei.
 feed-empty-no-subscriptions-button = Einstellungen öffnen
-feed-empty-refreshing-title = Feeds werden aktualisiert
-feed-empty-refreshing-text = Ihre Abonnements werden auf neue Videos geprüft.
+feed-empty-refreshing-title = Feed wird aktualisiert
+feed-empty-refreshing-text = Ihre Abonnements werden auf neue Videos geprüft...
 feed-empty-no-videos-title = Noch keine Videos
-feed-empty-no-videos-text = Rufen Sie die neuesten Videos Ihrer Abonnements ab.
+feed-empty-no-videos-text = Neueste Videos abrufen!
 feed-empty-no-videos-button = Jetzt abrufen
 feed-empty-no-matches-title = Keine passenden Videos
 feed-empty-no-matches-text = Versuchen Sie einen anderen Plattform- oder Kanalfilter.

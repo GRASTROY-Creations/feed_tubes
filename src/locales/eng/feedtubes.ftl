@@ -28,7 +28,7 @@ feed-grant-access = Grant access
 feed-requesting = Requesting…
 feed-load-more = Load more
 feed-load-more-count = Load { $count } more ({ $remaining } remaining)
-feed-status-refreshing = Refreshing feeds…
+feed-status-refreshing = Refreshing feed
 feed-status-failures =
     { $count ->
         [one] { $count } source could not be refreshed.
@@ -48,10 +48,10 @@ feed-error-permissions =
 feed-empty-no-subscriptions-title = No subscriptions yet
 feed-empty-no-subscriptions-text = Add a channel or import a subscription file.
 feed-empty-no-subscriptions-button = Open settings
-feed-empty-refreshing-title = Refreshing feeds
-feed-empty-refreshing-text = Your subscriptions are being checked for new videos.
+feed-empty-refreshing-title = Refreshing feed
+feed-empty-refreshing-text = Checking your subscriptions for new videos...
 feed-empty-no-videos-title = No videos yet
-feed-empty-no-videos-text = Fetch the latest videos from your subscriptions.
+feed-empty-no-videos-text = Fetch latest videos!
 feed-empty-no-videos-button = Fetch now
 feed-empty-no-matches-title = No matching videos
 feed-empty-no-matches-text = Try another platform or channel filter.

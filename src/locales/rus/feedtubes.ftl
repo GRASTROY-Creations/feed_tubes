@@ -28,7 +28,7 @@ feed-grant-access = Разрешить доступ
 feed-requesting = Запрос…
 feed-load-more = Показать ещё
 feed-load-more-count = Показать ещё { $count } (осталось { $remaining })
-feed-status-refreshing = Обновление лент…
+feed-status-refreshing = Обновление ленты
 feed-status-failures =
     { $count ->
         [one] Не удалось обновить { $count } источник.
@@ -54,10 +54,10 @@ feed-error-permissions =
 feed-empty-no-subscriptions-title = Подписок пока нет
 feed-empty-no-subscriptions-text = Добавьте канал или импортируйте файл подписок.
 feed-empty-no-subscriptions-button = Открыть настройки
-feed-empty-refreshing-title = Обновление лент
-feed-empty-refreshing-text = Проверяем ваши подписки на новые видео.
+feed-empty-refreshing-title = Обновление ленты
+feed-empty-refreshing-text = Проверяем ваши подписки на новые видео...
 feed-empty-no-videos-title = Видео пока нет
-feed-empty-no-videos-text = Загрузите последние видео из ваших подписок.
+feed-empty-no-videos-text = Загрузите последние видео!
 feed-empty-no-videos-button = Обновить сейчас
 feed-empty-no-matches-title = Подходящих видео нет
 feed-empty-no-matches-text = Попробуйте выбрать другую платформу или канал.

@@ -10,6 +10,7 @@ import {
   type Subscription,
 } from "../../lib/types.js";
 import type { AppContext, View } from "../app-context.js";
+import { createDotAnimator } from "../components/animated-text.js";
 import { ERROR_DURATION_MS, showError, showToast } from "../components/toast.js";
 import { createVideoCard } from "../components/video-card.js";
 import { currentLanguage, t, translate } from "../../lib/i18n/index.js";
@@ -138,6 +139,9 @@ export function initFeedView(app: AppContext): View {
   let currentErrorSignature: string | null = null;
   let wasRefreshing = false;
 
+  // One shared dot cycle for the status line and the empty-state title while refreshing.
+  const refreshingDots = createDotAnimator();
+
   // With thousands of subscriptions, the filters and the merged item list are expensive.
   // Both are rebuilt only when what they are built from changes (a reload replaces the
   // stored objects), not on every render. Translated labels are part of the results, so the
@@ -180,18 +184,21 @@ export function initFeedView(app: AppContext): View {
     const { subscriptions, refreshState } = app.state;
     const failures = entries.filter((entry) => entry.error).length;
 
-    let status = "";
     if (app.refreshing || refreshState.running) {
-      status = t("feed-status-refreshing");
-    } else if (refreshState.pending > 0) {
-      status = t("feed-status-queued", { count: refreshState.pending });
-    } else if (failures > 0) {
-      status = t("feed-status-failures", { count: failures });
-    } else if (subscriptions.length > 0 && !refreshState.lastCompletedAt) {
-      status = t("feed-status-never-refreshed");
+      refreshingDots.set(elements.feedStatus, t("feed-status-refreshing"));
+    } else {
+      let status = "";
+      if (refreshState.pending > 0) {
+        status = t("feed-status-queued", { count: refreshState.pending });
+      } else if (failures > 0) {
+        status = t("feed-status-failures", { count: failures });
+      } else if (subscriptions.length > 0 && !refreshState.lastCompletedAt) {
+        status = t("feed-status-never-refreshed");
+      }
+      refreshingDots.clear(elements.feedStatus);
+      setText(elements.feedStatus, status);
     }
 
-    setText(elements.feedStatus, status);
     setText(elements.lastUpdated, formatLastUpdated(refreshState.lastCompletedAt));
   }
 
@@ -283,9 +290,16 @@ export function initFeedView(app: AppContext): View {
     elements.feedEmpty.hidden = state === null;
     if (state) {
       emptyAction = state.action;
-      setText(elements.feedEmptyTitle, state.title);
+      if (state.action === "refresh" && app.refreshing) {
+        refreshingDots.set(elements.feedEmptyTitle, state.title);
+      } else {
+        refreshingDots.clear(elements.feedEmptyTitle);
+        setText(elements.feedEmptyTitle, state.title);
+      }
       setText(elements.feedEmptyText, state.text);
       setText(elements.feedEmptyAction, state.button);
+    } else {
+      refreshingDots.clear(elements.feedEmptyTitle);
     }
     elements.feedEmptyAction.disabled = app.refreshing && emptyAction === "refresh";
   }
