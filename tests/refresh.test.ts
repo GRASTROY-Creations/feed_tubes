@@ -294,6 +294,29 @@ describe("due selection and batches", () => {
     expect(Object.keys(result.cache)).toHaveLength(4);
   });
 
+  it("skips sources already completed by an interrupted run", async () => {
+    const resumed = channel(1);
+    const pending = [channel(2), channel(3)];
+    const subscriptions = [resumed, ...pending];
+    const previousCache = Object.fromEntries(
+      subscriptions.map((subscription) => [
+        subscriptionKey(subscription),
+        { fetchedAt: ago(DAY), items: [] },
+      ])
+    );
+
+    const { result, fetchedUrls } = await run({
+      subscriptions,
+      previousCache,
+      resumeKeys: [subscriptionKey(resumed)],
+    });
+
+    expect(fetchedUrls).toHaveLength(2);
+    expect(fetchedUrls.some((url) => url.includes(resumed.channelId))).toBe(false);
+    expect(result.failures).toBe(0);
+    expect(Object.keys(result.cache)).toHaveLength(3);
+  });
+
   it("waits longer after each failure in a row", async () => {
     expect(failureBackoffMs(1)).toBe(5 * 60 * 1000);
     expect(failureBackoffMs(3)).toBe(20 * 60 * 1000);

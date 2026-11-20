@@ -127,6 +127,8 @@ export interface RefreshState {
   lastCompletedAt: string | null;
   /** Due subscriptions still waiting for a later run (per-run limit or host limits). */
   pending: number;
+  /** Sources finished by an interrupted run, skipped once by the run that resumes it. */
+  completedKeys: string[];
 }
 
 export interface AppState {

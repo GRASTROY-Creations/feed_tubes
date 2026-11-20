@@ -16,7 +16,12 @@ import {
   type RequestType,
 } from "../lib/messages.js";
 import { createPermissionCheck, hostForSubscription } from "../lib/permissions.js";
-import { refreshFeeds, type RefreshMode, type RefreshResult } from "../lib/refresh.js";
+import {
+  MAX_SOURCES_PER_RUN,
+  refreshFeeds,
+  type RefreshMode,
+  type RefreshResult,
+} from "../lib/refresh.js";
 import {
   loadHostLimits,
   loadState,
@@ -78,6 +83,15 @@ async function performRefresh(reason: RefreshReason, mode: RefreshMode): Promise
   const runningState: RefreshState = { ...state.refreshState, running: true, startedAt };
   await saveRefreshState(runningState);
 
+  // Schedule the next chunk up front. If this background page is recycled mid-run, the alarm
+  // still wakes a new one that resumes from the keys saved with each progress update.
+  const enabledCount = state.subscriptions.filter((subscription) => subscription.enabled).length;
+  if (state.settings.refresh.enabled && enabledCount > MAX_SOURCES_PER_RUN) {
+    await scheduleContinuation(Date.now() + CONTINUE_DELAY_MS).catch((error: unknown) => {
+      console.warn("FeedTubes could not schedule the continuation alarm.", error);
+    });
+  }
+
   // Every request of this run goes through one throttle. Its hourly budget and host pauses
   // are stored, so they hold across runs and background restarts.
   const throttle = createHostThrottle(hostLimits);
@@ -90,16 +104,21 @@ async function performRefresh(reason: RefreshReason, mode: RefreshMode): Promise
       settings: state.settings,
       previousCache: state.cache,
       mode,
+      resumeKeys: state.refreshState.completedKeys,
       checkPermission: createPermissionCheck(),
       ...throttle.wrap({ fetchText, fetchJson, postJson }),
       hostBlockedUntil: (subscription) => throttle.blockedUntil(hostForSubscription(subscription)),
-      onProgress: async ({ cache, done, planned }) => {
+      onProgress: async ({ cache, done, planned, completedKeys }) => {
         const now = Date.now();
         if (now - lastProgressAt < PROGRESS_SAVE_MIN_GAP_MS) {
           return;
         }
         lastProgressAt = now;
-        await Promise.all([saveCurrentCache(cache), persistThrottle()]);
+        await Promise.all([
+          saveCurrentCache(cache),
+          persistThrottle(),
+          saveRefreshState({ ...runningState, completedKeys }),
+        ]);
         await broadcast({ type: "feed-updated", reason, progress: { done, planned } });
       },
     });
@@ -114,6 +133,7 @@ async function performRefresh(reason: RefreshReason, mode: RefreshMode): Promise
       // When nothing was fetched, the feed is as old as it was.
       lastCompletedAt: fetched > 0 ? summary.completedAt : state.refreshState.lastCompletedAt,
       pending: summary.pending + summary.deferred,
+      completedKeys: [],
     });
     // With background fetching off, the rest of a large list waits for the next manual or
     // on-open refresh.
@@ -131,7 +151,12 @@ async function performRefresh(reason: RefreshReason, mode: RefreshMode): Promise
     return { ok: true, ...summary };
   } catch (error) {
     const text = toLocalizedText(error, "background-refresh-failed");
-    await saveRefreshState({ ...state.refreshState, running: false, startedAt: null });
+    await saveRefreshState({
+      ...state.refreshState,
+      running: false,
+      startedAt: null,
+      completedKeys: [],
+    });
     await broadcast({ type: "feed-updated", error: text, reason });
     return { ok: false, error: text };
   }

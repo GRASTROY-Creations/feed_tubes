@@ -41,6 +41,7 @@ export const DEFAULT_REFRESH_STATE: Readonly<RefreshState> = Object.freeze({
   startedAt: null,
   lastCompletedAt: null,
   pending: 0,
+  completedKeys: [],
 });
 
 const STATE_KEYS = ["schemaVersion", "subscriptions", "settings", "cache", "refreshState"] as const;
@@ -70,6 +71,7 @@ function mergeSettings(value: unknown): Settings {
 /** Turns whatever is in storage into a complete `AppState`, filling in defaults. */
 export function normalizeState(raw: unknown): AppState {
   const value = asRecord(raw);
+  const storedRefresh = asRecord(value.refreshState);
   return {
     schemaVersion: SCHEMA_VERSION,
     subscriptions: asArray(value.subscriptions) as Subscription[],
@@ -78,7 +80,11 @@ export function normalizeState(raw: unknown): AppState {
     cache: (isRecord(value.cache) && value.schemaVersion === SCHEMA_VERSION
       ? value.cache
       : {}) as FeedCache,
-    refreshState: { ...DEFAULT_REFRESH_STATE, ...asRecord(value.refreshState) },
+    refreshState: {
+      ...DEFAULT_REFRESH_STATE,
+      ...storedRefresh,
+      completedKeys: asArray(storedRefresh.completedKeys) as string[],
+    },
   };
 }
 

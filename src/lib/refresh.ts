@@ -50,6 +50,8 @@ export interface RefreshFeedsOptions extends RefreshDependencies {
   mode?: RefreshMode;
   /** At most this many sources are fetched per run; the rest is left for the next one. */
   maxSources?: number;
+  /** Source keys already fetched by an interrupted run; the next run skips them once. */
+  resumeKeys?: readonly string[];
   now?: Date;
 }
 
@@ -101,6 +103,8 @@ export interface RefreshProgress {
   done: number;
   /** Sources this run will fetch. */
   planned: number;
+  /** Keys of the sources finished so far, persisted so an interrupted run can be resumed. */
+  completedKeys: string[];
 }
 
 /** Runs `worker` over `items` with at most `concurrency` in flight. */
@@ -252,6 +256,7 @@ export async function refreshFeeds({
   previousCache = {},
   mode = "due",
   maxSources = MAX_SOURCES_PER_RUN,
+  resumeKeys = [],
   now = new Date(),
   ...dependencies
 }: RefreshFeedsOptions): Promise<RefreshResult> {
@@ -264,6 +269,7 @@ export async function refreshFeeds({
   const fetchedAt = now.toISOString();
 
   const enabled = subscriptions.filter((subscription) => subscription.enabled);
+  const resumed = new Set(resumeKeys);
   const cache: FeedCache = {};
   const notDue: number[] = [];
   const blocked: number[] = [];
@@ -273,6 +279,12 @@ export async function refreshFeeds({
     const key = subscriptionKey(subscription);
     const previous = previousCache[key];
     cache[key] = keptEntry(previous);
+
+    // A source already fetched by the interrupted run keeps its cached entry but is not
+    // asked again in the run that resumes it.
+    if (resumed.has(key)) {
+      continue;
+    }
 
     const at = dueAt(subscription, previous, { mode, intervalMs, now: nowMs });
     if (at > nowMs) {
@@ -293,6 +305,7 @@ export async function refreshFeeds({
 
   let failures = 0;
   let done = 0;
+  const completedKeys: string[] = [];
 
   async function fetchOne({ subscription, key }: Candidate): Promise<void> {
     const previous = previousCache[key];
@@ -324,8 +337,14 @@ export async function refreshFeeds({
     }
 
     done += 1;
+    completedKeys.push(key);
     if (dependencies.onProgress && done % PROGRESS_EVERY === 0 && done < planned.length) {
-      await dependencies.onProgress({ cache: { ...cache }, done, planned: planned.length });
+      await dependencies.onProgress({
+        cache: { ...cache },
+        done,
+        planned: planned.length,
+        completedKeys: [...completedKeys],
+      });
     }
   }
 
