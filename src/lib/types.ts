@@ -146,6 +146,8 @@ export interface FetchOptions {
   accept?: string;
   /** Extra request headers, e.g. an API's `Authorization`. Never included in error messages. */
   headers?: Readonly<Record<string, string>>;
+  /** Internal per-subscription throttle key, removed before the request is sent. */
+  throttleKey?: string;
 }
 
 export type FetchText = (url: string, options?: FetchOptions) => Promise<string>;

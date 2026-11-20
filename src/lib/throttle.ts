@@ -47,6 +47,14 @@ export const DEFAULT_HOST_POLICY: Readonly<HostPolicy> = Object.freeze({
   hourlyCap: 900,
 });
 
+/** Aggregate limits: a second host may run alongside the first, but never more. */
+export const GLOBAL_MAX_PER_SECOND = 2;
+export const GLOBAL_MAX_IN_FLIGHT = 2;
+
+/** A subscription's adapter already fetches sequentially; the gate also spaces those starts. */
+export const SOURCE_MAX_PER_SECOND = 1;
+export const SOURCE_MAX_IN_FLIGHT = 1;
+
 /** Refusals in a row that pause a host. */
 export const BREAKER_THRESHOLD = 3;
 export const BREAKER_BASE_MS = 30 * MINUTE_MS;
@@ -62,10 +70,14 @@ export interface HostLimits {
   usage: Record<string, number[]>;
   /** Paused hosts: until when (ms), and how often in a row they were paused. */
   paused: Record<string, { until: number; trips: number }>;
+  /** Requests started per host, kept so periodic pauses survive short background runs. */
+  started: Record<string, number>;
+  /** Refusals in a row per host, kept so the breaker survives short background runs. */
+  refusals: Record<string, number>;
 }
 
 export function emptyHostLimits(): HostLimits {
-  return { usage: {}, paused: {} };
+  return { usage: {}, paused: {}, started: {}, refusals: {} };
 }
 
 export interface ThrottleClock {
@@ -83,13 +95,23 @@ const realClock: ThrottleClock = {
   random: () => Math.random(),
 };
 
-interface HostGate {
+interface RequestGate {
   inFlight: number;
   waiting: (() => void)[];
+  /** Planned starts in the current sliding second, including ones still sleeping. */
+  starts: number[];
   /** Earliest start time for the next request. */
   nextStartAt: number;
+}
+
+interface HostGate extends RequestGate {
   started: number;
   refusalsInRow: number;
+}
+
+interface Reservation {
+  startAt: number;
+  release: () => void;
 }
 
 export interface ThrottledFetchers {
@@ -128,12 +150,31 @@ export function createHostThrottle(
     Object.entries(initial.paused).map(([host, value]) => [host, { ...value }])
   );
   const gates = new Map<string, HostGate>();
+  const globalGate: RequestGate = { inFlight: 0, waiting: [], starts: [], nextStartAt: 0 };
+  const sourceGates = new Map<string, RequestGate>();
+
+  function emptyGate(): RequestGate {
+    return { inFlight: 0, waiting: [], starts: [], nextStartAt: 0 };
+  }
 
   function gateFor(host: string): HostGate {
     let gate = gates.get(host);
     if (!gate) {
-      gate = { inFlight: 0, waiting: [], nextStartAt: 0, started: 0, refusalsInRow: 0 };
+      gate = {
+        ...emptyGate(),
+        started: initial.started[host] ?? 0,
+        refusalsInRow: initial.refusals[host] ?? 0,
+      };
       gates.set(host, gate);
+    }
+    return gate;
+  }
+
+  function sourceGateFor(key: string): RequestGate {
+    let gate = sourceGates.get(key);
+    if (!gate) {
+      gate = emptyGate();
+      sourceGates.set(key, gate);
     }
     return gate;
   }
@@ -156,29 +197,84 @@ export function createHostThrottle(
     return null;
   }
 
-  async function acquire(gate: HostGate): Promise<void> {
-    const policy = DEFAULT_HOST_POLICY;
-    while (gate.inFlight >= policy.maxInFlight) {
-      await new Promise<void>((resolve) => gate.waiting.push(resolve));
+  /** Claims an in-flight slot atomically; the check and increment cannot interleave. */
+  async function enterGate(gate: RequestGate, maxInFlight: number): Promise<void> {
+    if (gate.inFlight < maxInFlight) {
+      gate.inFlight += 1;
+      return;
     }
-    gate.inFlight += 1;
+    // The slot is handed over by releaseSlot, so it is already counted for us.
+    await new Promise<void>((resolve) => gate.waiting.push(resolve));
+  }
 
-    // Reserve a start time, then wait for it. Reserving first keeps the spacing correct
-    // when several requests queue up at once.
+  function releaseSlot(gate: RequestGate): void {
+    const next = gate.waiting.shift();
+    if (next) {
+      next();
+    } else {
+      gate.inFlight -= 1;
+    }
+  }
+
+  /**
+   * Reserves a planned start in the sliding second before sleeping. Recording the slot up
+   * front stops queued requests from all seeing an empty window when they wake up together.
+   */
+  function reserveStart(gate: RequestGate, maxPerSecond: number): number {
     const now = clock.now();
-    const startAt = Math.max(now, gate.nextStartAt);
+    gate.starts = gate.starts.filter((time) => now - time < SECOND_MS);
+    let startAt = Math.max(now, gate.nextStartAt);
+    const oldest = gate.starts[0];
+    if (gate.starts.length >= maxPerSecond && oldest !== undefined) {
+      startAt = Math.max(startAt, oldest + SECOND_MS);
+    }
+    gate.starts.push(startAt);
+    return startAt;
+  }
+
+  async function reserveGlobal(): Promise<Reservation> {
+    await enterGate(globalGate, GLOBAL_MAX_IN_FLIGHT);
+    const startAt = reserveStart(globalGate, GLOBAL_MAX_PER_SECOND);
+    globalGate.nextStartAt = startAt + SECOND_MS / GLOBAL_MAX_PER_SECOND;
+    return {
+      startAt,
+      release: () => {
+        releaseSlot(globalGate);
+      },
+    };
+  }
+
+  async function reserveSource(key: string): Promise<Reservation> {
+    const gate = sourceGateFor(key);
+    await enterGate(gate, SOURCE_MAX_IN_FLIGHT);
+    const startAt = reserveStart(gate, SOURCE_MAX_PER_SECOND);
+    gate.nextStartAt = startAt + SECOND_MS / SOURCE_MAX_PER_SECOND;
+    return {
+      startAt,
+      release: () => {
+        releaseSlot(gate);
+      },
+    };
+  }
+
+  async function reserveHost(host: string): Promise<Reservation & { gate: HostGate }> {
+    const gate = gateFor(host);
+    const policy = DEFAULT_HOST_POLICY;
+    await enterGate(gate, policy.maxInFlight);
+    const startAt = reserveStart(gate, policy.maxPerSecond);
     gate.started += 1;
     const pause =
       policy.pauseEvery > 0 && gate.started % policy.pauseEvery === 0
         ? randomBetween(clock, policy.pauseMs[0], policy.pauseMs[1])
         : 0;
     gate.nextStartAt = startAt + policy.minGapMs + randomBetween(clock, 0, policy.jitterMs) + pause;
-    await clock.sleep(startAt - now);
-  }
-
-  function release(gate: HostGate): void {
-    gate.inFlight -= 1;
-    gate.waiting.shift()?.();
+    return {
+      startAt,
+      release: () => {
+        releaseSlot(gate);
+      },
+      gate,
+    };
   }
 
   function recordOutcome(host: string, gate: HostGate, error: unknown): void {
@@ -202,58 +298,84 @@ export function createHostThrottle(
     paused.set(host, { until, trips });
   }
 
-  /** One request through the gate: waits its turn, checks the limits, records the outcome. */
-  async function once<T>(host: string, send: () => Promise<T>): Promise<T> {
-    const gate = gateFor(host);
-    await acquire(gate);
+  /** One request through every gate: reserves all slots, waits once, then sends. */
+  async function once<T>(
+    host: string,
+    sourceKey: string | undefined,
+    send: () => Promise<T>
+  ): Promise<T> {
+    const global = await reserveGlobal();
+    let source: Reservation | undefined;
+    let hostReservation: (Reservation & { gate: HostGate }) | undefined;
     try {
-      // Checked after waiting: the host may have been paused while this request queued.
-      const limit = limitFor(host, clock.now());
-      if (limit) {
-        throw limit;
+      if (sourceKey) {
+        source = await reserveSource(sourceKey);
       }
-      recentUsage(host, clock.now()).push(clock.now());
       try {
-        const result = await send();
-        recordOutcome(host, gate, undefined);
-        return result;
-      } catch (error) {
-        recordOutcome(host, gate, error);
-        throw error;
+        hostReservation = await reserveHost(host);
+        try {
+          const startAt = Math.max(global.startAt, source?.startAt ?? 0, hostReservation.startAt);
+          await clock.sleep(Math.max(0, startAt - clock.now()));
+          // Checked after waiting: the host may have been paused while this request queued.
+          const limit = limitFor(host, clock.now());
+          if (limit) {
+            throw limit;
+          }
+          recentUsage(host, clock.now()).push(clock.now());
+          try {
+            const result = await send();
+            recordOutcome(host, hostReservation.gate, undefined);
+            return result;
+          } catch (error) {
+            recordOutcome(host, hostReservation.gate, error);
+            throw error;
+          }
+        } finally {
+          hostReservation.release();
+        }
+      } finally {
+        source?.release();
       }
     } finally {
-      release(gate);
+      global.release();
     }
   }
 
   /**
-   * Sends with `retries: 0` and retries a transient failure once itself, through the gate,
+   * Sends with `retries: 0` and retries a transient failure once itself, through the gates,
    * so the retry is spaced and counted like any other request.
    */
-  async function run<T>(url: string, send: () => Promise<T>): Promise<T> {
+  async function run<T>(url: string, send: () => Promise<T>, sourceKey?: string): Promise<T> {
     const host = hostOf(url);
     if (!host) {
       return send();
     }
     try {
-      return await once(host, send);
+      return await once(host, sourceKey, send);
     } catch (error) {
       if (!isTransientError(error)) {
         throw error;
       }
-      return once(host, send);
+      return once(host, sourceKey, send);
     }
   }
 
-  const noRetry = (options?: FetchOptions): FetchOptions => ({ ...options, retries: 0 });
+  /** Keeps the internal throttle key out of the options passed to the fetch implementation. */
+  function noRetry(options?: FetchOptions): FetchOptions {
+    const safe: FetchOptions = { ...options, retries: 0 };
+    delete safe.throttleKey;
+    return safe;
+  }
 
   return {
     wrap(fetchers) {
       return {
-        fetchText: (url, options) => run(url, () => fetchers.fetchText(url, noRetry(options))),
-        fetchJson: (url, options) => run(url, () => fetchers.fetchJson(url, noRetry(options))),
+        fetchText: (url, options) =>
+          run(url, () => fetchers.fetchText(url, noRetry(options)), options?.throttleKey),
+        fetchJson: (url, options) =>
+          run(url, () => fetchers.fetchJson(url, noRetry(options)), options?.throttleKey),
         postJson: (url, body, options) =>
-          run(url, () => fetchers.postJson(url, body, noRetry(options))),
+          run(url, () => fetchers.postJson(url, body, noRetry(options)), options?.throttleKey),
       };
     },
 
@@ -268,9 +390,24 @@ export function createHostThrottle(
         .filter(([, times]) => times.length > 0);
       // Keep expired pauses: their trip count makes the next pause longer if the host
       // refuses again right away. A success clears them.
+      const hosts = new Set([
+        ...usage.keys(),
+        ...gates.keys(),
+        ...Object.keys(initial.started),
+        ...Object.keys(initial.refusals),
+      ]);
       return {
         usage: Object.fromEntries(usageEntries),
         paused: Object.fromEntries([...paused].map(([host, value]) => [host, { ...value }])),
+        started: Object.fromEntries(
+          [...hosts].map((host) => [host, gates.get(host)?.started ?? initial.started[host] ?? 0])
+        ),
+        refusals: Object.fromEntries(
+          [...hosts].map((host) => [
+            host,
+            gates.get(host)?.refusalsInRow ?? initial.refusals[host] ?? 0,
+          ])
+        ),
       };
     },
   };
@@ -290,6 +427,16 @@ export function normalizeHostLimits(value: unknown): HostLimits {
     const { until, trips } = asRecord(entry);
     if (typeof until === "number" && typeof trips === "number") {
       limits.paused[host] = { until, trips };
+    }
+  }
+  for (const [host, count] of Object.entries(asRecord(stored.started))) {
+    if (typeof count === "number" && Number.isFinite(count) && count >= 0) {
+      limits.started[host] = count;
+    }
+  }
+  for (const [host, count] of Object.entries(asRecord(stored.refusals))) {
+    if (typeof count === "number" && Number.isFinite(count) && count >= 0) {
+      limits.refusals[host] = count;
     }
   }
   return limits;

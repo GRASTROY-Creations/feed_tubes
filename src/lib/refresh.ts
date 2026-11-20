@@ -10,6 +10,7 @@ import type {
   FeedItem,
   FeedSettings,
   FetchJson,
+  FetchOptions,
   FetchText,
   PostJson,
   RefreshSettings,
@@ -133,10 +134,12 @@ async function fetchSubscriptionItems(
   feed: FeedSettings,
   apiKeys: Readonly<ApiKeys>
 ): Promise<FeedItem[]> {
+  const key = subscriptionKey(subscription);
+  const sourceFetch = (options?: FetchOptions): FetchOptions => ({ ...options, throttleKey: key });
   const items = await getPlatform(subscription.platform).adapter.fetchItems(subscription, {
-    fetchText: dependencies.fetchText,
-    fetchJson: dependencies.fetchJson,
-    postJson: dependencies.postJson,
+    fetchText: (url, options) => dependencies.fetchText(url, sourceFetch(options)),
+    fetchJson: (url, options) => dependencies.fetchJson(url, sourceFetch(options)),
+    postJson: (url, body, options) => dependencies.postJson(url, body, sourceFetch(options)),
     timeoutMs: feed.timeoutMs,
     itemsPerSource: feed.itemsPerSource,
     apiKeys,

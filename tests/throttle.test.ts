@@ -19,11 +19,16 @@ const FEED = "https://www.youtube.com/feeds/videos.xml?channel_id=x";
 /** A clock that only moves when the throttle sleeps; random is fixed at 0 (no jitter). */
 function fakeClock(start = 1_000_000): ThrottleClock & { time: () => number } {
   let now = start;
+  let timers = Promise.resolve();
   return {
     now: () => now,
     sleep: (milliseconds) => {
-      now += Math.max(0, milliseconds);
-      return Promise.resolve();
+      const target = now + Math.max(0, milliseconds);
+      const timer = timers.then(() => {
+        now = Math.max(now, target);
+      });
+      timers = timer;
+      return timer;
     },
     random: () => 0,
     time: () => now,
@@ -81,6 +86,8 @@ describe("host throttle", () => {
     const limits: HostLimits = {
       usage: { [YOUTUBE]: Array.from({ length: cap }, (_, index) => oldest + index) },
       paused: {},
+      started: {},
+      refusals: {},
     };
     const { fetchers, starts, throttle } = setup(undefined, limits);
 
@@ -133,10 +140,75 @@ describe("host throttle", () => {
     expect(starts).toHaveLength(1);
   });
 
+  it("spaces requests from one source even when they go to different hosts", async () => {
+    const clock = fakeClock();
+    const throttle = createHostThrottle(emptyHostLimits(), clock);
+    const starts: Record<"a" | "b", number[]> = { a: [], b: [] };
+    const wrapped = throttle.wrap({
+      fetchText: (url) => {
+        const host = url.includes("a.example") ? "a" : "b";
+        starts[host].push(clock.time());
+        return Promise.resolve("ok");
+      },
+      fetchJson: () => Promise.resolve({}),
+      postJson: () => Promise.resolve({}),
+    });
+
+    await Promise.all([
+      wrapped.fetchText("https://a.example/feed", { throttleKey: "source" }),
+      wrapped.fetchText("https://b.example/feed", { throttleKey: "source" }),
+    ]);
+    expect(starts.a).toHaveLength(1);
+    expect(starts.b).toHaveLength(1);
+    expect(Math.abs((starts.b[0] ?? 0) - (starts.a[0] ?? 0))).toBeGreaterThanOrEqual(1000);
+  });
+
+  it("lets at most two requests start across hosts in a second", async () => {
+    const clock = fakeClock();
+    const throttle = createHostThrottle(emptyHostLimits(), clock);
+    const starts: number[] = [];
+    const wrapped = throttle.wrap({
+      fetchText: () => {
+        starts.push(clock.time());
+        return Promise.resolve("ok");
+      },
+      fetchJson: () => Promise.resolve({}),
+      postJson: () => Promise.resolve({}),
+    });
+
+    await Promise.all([
+      wrapped.fetchText("https://a.example/feed"),
+      wrapped.fetchText("https://b.example/feed"),
+      wrapped.fetchText("https://c.example/feed"),
+    ]);
+    expect(starts).toHaveLength(3);
+    expect((starts[2] ?? 0) - (starts[0] ?? 0)).toBeGreaterThanOrEqual(1000);
+  });
+
+  it("keeps stored host counters until that host is used again", () => {
+    const throttle = createHostThrottle({
+      usage: {},
+      paused: {},
+      started: { a: 49 },
+      refusals: { a: 2 },
+    });
+    expect(throttle.snapshot()).toEqual({
+      usage: {},
+      paused: {},
+      started: { a: 49 },
+      refusals: { a: 2 },
+    });
+  });
+
   it("counts usage per host and drops it after the window", () => {
     const clock = fakeClock();
     const throttle = createHostThrottle(
-      { usage: { a: [clock.now() - BUDGET_WINDOW_MS - 1, clock.now() - 1] }, paused: {} },
+      {
+        usage: { a: [clock.now() - BUDGET_WINDOW_MS - 1, clock.now() - 1] },
+        paused: {},
+        started: {},
+        refusals: {},
+      },
       clock
     );
     expect(throttle.snapshot().usage).toEqual({ a: [clock.now() - 1] });
@@ -149,8 +221,15 @@ describe("normalizeHostLimits", () => {
       normalizeHostLimits({
         usage: { a: [1, "x", 2], b: "nope" },
         paused: { a: { until: 5, trips: 1 }, b: { until: "soon" } },
+        started: { a: 7, b: -1, c: "many" },
+        refusals: { a: 2, b: Infinity },
       })
-    ).toEqual({ usage: { a: [1, 2], b: [] }, paused: { a: { until: 5, trips: 1 } } });
+    ).toEqual({
+      usage: { a: [1, 2], b: [] },
+      paused: { a: { until: 5, trips: 1 } },
+      started: { a: 7 },
+      refusals: { a: 2 },
+    });
     expect(normalizeHostLimits(undefined)).toEqual(emptyHostLimits());
   });
 });
