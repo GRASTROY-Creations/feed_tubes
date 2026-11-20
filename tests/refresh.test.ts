@@ -270,6 +270,27 @@ describe("due selection and batches", () => {
     expect(result.nextRefreshAt).toBe(new Date(NOW.getTime() + 2 * HOUR).toISOString());
   });
 
+  it("keeps older cached videos when only the newest ones are fetched", async () => {
+    const target = channel(1);
+    const oldItems = Array.from({ length: 6 }, (_, index) =>
+      feedItem({ id: `old-${index}`, publishedAt: ago((index + 1) * DAY) })
+    );
+    const { result, fetchedUrls } = await run({
+      subscriptions: [target],
+      previousCache: {
+        [subscriptionKey(target)]: { fetchedAt: ago(4 * HOUR), items: oldItems },
+      },
+    });
+
+    expect(fetchedUrls).toHaveLength(1);
+    const ids = result.cache[subscriptionKey(target)]?.items.map((item) => item.id) ?? [];
+    expect(ids).toHaveLength(oldItems.length + 1);
+    expect(ids).toContain("youtube:v1");
+    for (const item of oldItems) {
+      expect(ids).toContain(item.id);
+    }
+  });
+
   it("checks inactive channels at most once a day", () => {
     expect(checkIntervalMs(3 * HOUR, uploadedAgo(HOUR), NOW.getTime())).toBe(3 * HOUR);
     expect(checkIntervalMs(3 * HOUR, uploadedAgo(10 * DAY), NOW.getTime())).toBe(6 * HOUR);

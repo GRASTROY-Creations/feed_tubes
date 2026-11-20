@@ -1,21 +1,14 @@
 import { asArray, asRecord, isRecord } from "./guards.js";
 import { normalizeLanguageSetting } from "./i18n/index.js";
 import { normalizeHostLimits, type HostLimits } from "./throttle.js";
-import type {
-  AppState,
-  CacheEntry,
-  FeedCache,
-  RefreshState,
-  Settings,
-  Subscription,
-} from "./types.js";
+import type { AppState, FeedCache, RefreshState, Settings, Subscription } from "./types.js";
 
 /**
  * Version 2: cached errors are message ids instead of translated text, and stream cards carry
  * a `stream` flag instead of a translated title prefix.
  */
 export const SCHEMA_VERSION = 2;
-/** Latest videos kept per subscription. Also enforced on old installs and stored caches. */
+/** Newest videos requested per subscription on each update; older cached videos are kept. */
 export const FEED_ITEMS_PER_SOURCE = 6;
 export const REFRESH_INTERVAL_DEFAULT = 180;
 export const REFRESH_INTERVAL_OPTIONS: readonly number[] = [60, 180, 360, 720, 1440];
@@ -81,21 +74,6 @@ function mergeSettings(value: unknown): Settings {
   };
 }
 
-/** Keeps only the newest entries of each cached source, without losing error details. */
-function trimCache(cache: FeedCache): FeedCache {
-  const trimmed: FeedCache = {};
-  for (const [key, entry] of Object.entries(cache)) {
-    if (!isRecord(entry)) {
-      continue;
-    }
-    trimmed[key] = {
-      ...(entry as CacheEntry),
-      items: asArray(entry.items).slice(0, FEED_ITEMS_PER_SOURCE) as CacheEntry["items"],
-    };
-  }
-  return trimmed;
-}
-
 /** Turns whatever is in storage into a complete `AppState`, filling in defaults. */
 export function normalizeState(raw: unknown): AppState {
   const value = asRecord(raw);
@@ -109,7 +87,7 @@ export function normalizeState(raw: unknown): AppState {
     schemaVersion: SCHEMA_VERSION,
     subscriptions: asArray(value.subscriptions) as Subscription[],
     settings: mergeSettings(value.settings),
-    cache: trimCache(storedCache),
+    cache: storedCache,
     refreshState: {
       ...DEFAULT_REFRESH_STATE,
       ...storedRefresh,

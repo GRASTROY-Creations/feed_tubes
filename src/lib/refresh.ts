@@ -226,6 +226,26 @@ function keptEntry(previous: Partial<CacheEntry> | undefined): CacheEntry {
   return entry;
 }
 
+/**
+ * Keeps every video already cached and adds the freshly fetched ones. A video present in both
+ * uses the fresh copy, and the combined list stays sorted newest first for the feed view.
+ */
+function mergeCachedItems(
+  previous: readonly FeedItem[] | undefined,
+  fetched: readonly FeedItem[]
+): FeedItem[] {
+  const merged = new Map<string, FeedItem>();
+  for (const item of fetched) {
+    merged.set(item.id, item);
+  }
+  for (const item of previous ?? []) {
+    if (!merged.has(item.id)) {
+      merged.set(item.id, item);
+    }
+  }
+  return [...merged.values()].toSorted(byPublishedDesc);
+}
+
 /** The `HostLimitError` behind `error`, also when an adapter wrapped it as the cause. */
 function hostLimitIn(error: unknown): HostLimitError | null {
   for (let current = error, depth = 0; current && depth < 5; depth += 1) {
@@ -327,7 +347,12 @@ export async function refreshFeeds({
         cache[key] = failed({ id: "refresh-error-permission" }, "permission-required");
       } else {
         const items = await fetchSubscriptionItems(subscription, dependencies, feed, apiKeys);
-        cache[key] = { fetchedAt, items, error: null, errorCode: "" };
+        cache[key] = {
+          fetchedAt,
+          items: mergeCachedItems(previous?.items, items),
+          error: null,
+          errorCode: "",
+        };
       }
     } catch (error) {
       const hostLimit = hostLimitIn(error);

@@ -21,7 +21,7 @@ describe("feed entry limit", () => {
     expect(state.settings.feed.concurrency).toBe(2);
   });
 
-  it("trims stored cache entries to six items", () => {
+  it("preserves every cached video while limiting only the fetch count", () => {
     const key = "youtube|UC123";
     const items = Array.from({ length: 10 }, (_, index) =>
       feedItem({ id: `item-${index}`, publishedAt: new Date(2026, 0, 10 - index).toISOString() })
@@ -40,10 +40,8 @@ describe("feed entry limit", () => {
     });
 
     const entry = state.cache[key];
-    expect(entry?.items).toHaveLength(FEED_ITEMS_PER_SOURCE);
-    expect(entry?.items.map((item) => item.id)).toEqual(
-      items.slice(0, FEED_ITEMS_PER_SOURCE).map((item) => item.id)
-    );
+    expect(entry?.items).toHaveLength(10);
+    expect(entry?.items.map((item) => item.id)).toEqual(items.map((item) => item.id));
     expect(entry?.error).toEqual({ id: "error-raw", args: { detail: "bad" } });
     expect(entry?.errorCode).toBe("fetch-failed");
     expect(entry?.failures).toBe(2);
