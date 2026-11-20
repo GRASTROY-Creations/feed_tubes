@@ -4,8 +4,8 @@ import {
   BREAKER_BASE_MS,
   BUDGET_WINDOW_MS,
   createHostThrottle,
+  DEFAULT_HOST_POLICY,
   emptyHostLimits,
-  HOST_POLICIES,
   normalizeHostLimits,
   type HostLimits,
   type ThrottleClock,
@@ -52,7 +52,7 @@ function setup(
 }
 
 describe("host throttle", () => {
-  it("sends YouTube requests one at a time, at least a second apart", async () => {
+  it("sends host requests one at a time, at least a second apart", async () => {
     const { fetchers, starts } = setup();
     await Promise.all([
       fetchers.fetchText(FEED),
@@ -65,18 +65,18 @@ describe("host throttle", () => {
     expect((starts[2] ?? 0) - (starts[1] ?? 0)).toBeGreaterThanOrEqual(1000);
   });
 
-  it("pauses after every 50 YouTube requests", async () => {
+  it("pauses after every 50 requests", async () => {
     const { fetchers, starts } = setup();
     for (let index = 0; index < 51; index += 1) {
       await fetchers.fetchText(FEED);
     }
-    const [minPause] = HOST_POLICIES[YOUTUBE]?.pauseMs ?? [0];
+    const [minPause] = DEFAULT_HOST_POLICY.pauseMs;
     expect((starts[50] ?? 0) - (starts[49] ?? 0)).toBeGreaterThanOrEqual(1000 + minPause);
   });
 
   it("stops at the hourly budget without sending", async () => {
     const clock = fakeClock();
-    const cap = HOST_POLICIES[YOUTUBE]?.hourlyCap ?? 0;
+    const cap = DEFAULT_HOST_POLICY.hourlyCap;
     const oldest = clock.now() - 10 * 60 * 1000;
     const limits: HostLimits = {
       usage: { [YOUTUBE]: Array.from({ length: cap }, (_, index) => oldest + index) },

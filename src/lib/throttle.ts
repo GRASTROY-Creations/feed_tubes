@@ -15,6 +15,8 @@ import type { FetchJson, FetchOptions, FetchText, PostJson } from "./types.js";
 export interface HostPolicy {
   /** Requests to the host that may be open at once. */
   maxInFlight: number;
+  /** Requests to the host that may start in a sliding second. */
+  maxPerSecond: number;
   /** Minimum time between two request starts. */
   minGapMs: number;
   /** Random extra time added to each gap, so requests do not follow a fixed rhythm. */
@@ -30,25 +32,19 @@ const SECOND_MS = 1000;
 const MINUTE_MS = 60 * SECOND_MS;
 const HOUR_MS = 60 * MINUTE_MS;
 
+/**
+ * One conservative policy for every host. YouTube used to have a special entry, but a client
+ * that looks automated should be equally gentle everywhere; the shared limits also make the
+ * per-second and per-source caps below easy to reason about.
+ */
 export const DEFAULT_HOST_POLICY: Readonly<HostPolicy> = Object.freeze({
-  maxInFlight: 2,
-  minGapMs: 300,
-  jitterMs: 0,
-  pauseEvery: 0,
-  pauseMs: [0, 0] as const,
-  hourlyCap: 1500,
-});
-
-/** Hosts that need more care than the default. YouTube blocks IPs that look automated. */
-export const HOST_POLICIES: Readonly<Record<string, Readonly<HostPolicy>>> = Object.freeze({
-  "www.youtube.com": Object.freeze({
-    maxInFlight: 1,
-    minGapMs: SECOND_MS,
-    jitterMs: 500,
-    pauseEvery: 50,
-    pauseMs: [8 * SECOND_MS, 15 * SECOND_MS] as const,
-    hourlyCap: 900,
-  }),
+  maxInFlight: 1,
+  maxPerSecond: 1,
+  minGapMs: SECOND_MS,
+  jitterMs: 150,
+  pauseEvery: 50,
+  pauseMs: [8 * SECOND_MS, 15 * SECOND_MS] as const,
+  hourlyCap: 900,
 });
 
 /** Refusals in a row that pause a host. */
@@ -59,10 +55,6 @@ export const BUDGET_WINDOW_MS = HOUR_MS;
 
 /** Statuses that mean "you are asking too much": they count towards pausing the host. */
 const REFUSAL_STATUSES = new Set([403, 429]);
-
-export function policyFor(host: string): Readonly<HostPolicy> {
-  return HOST_POLICIES[host] ?? DEFAULT_HOST_POLICY;
-}
 
 /** Throttle state that outlives a refresh run; stored by the background script. */
 export interface HostLimits {
@@ -158,14 +150,14 @@ export function createHostThrottle(
       return new HostLimitError("paused", host, pause.until);
     }
     const recent = recentUsage(host, now);
-    if (recent.length >= policyFor(host).hourlyCap) {
+    if (recent.length >= DEFAULT_HOST_POLICY.hourlyCap) {
       return new HostLimitError("budget", host, (recent[0] ?? now) + BUDGET_WINDOW_MS);
     }
     return null;
   }
 
-  async function acquire(host: string, gate: HostGate): Promise<void> {
-    const policy = policyFor(host);
+  async function acquire(gate: HostGate): Promise<void> {
+    const policy = DEFAULT_HOST_POLICY;
     while (gate.inFlight >= policy.maxInFlight) {
       await new Promise<void>((resolve) => gate.waiting.push(resolve));
     }
@@ -213,7 +205,7 @@ export function createHostThrottle(
   /** One request through the gate: waits its turn, checks the limits, records the outcome. */
   async function once<T>(host: string, send: () => Promise<T>): Promise<T> {
     const gate = gateFor(host);
-    await acquire(host, gate);
+    await acquire(gate);
     try {
       // Checked after waiting: the host may have been paused while this request queued.
       const limit = limitFor(host, clock.now());
