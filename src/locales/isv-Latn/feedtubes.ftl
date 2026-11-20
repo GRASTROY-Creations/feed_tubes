@@ -40,10 +40,10 @@ feed-status-failures =
 feed-status-never-refreshed = Lenta ješče ne byla obnovjena.
 feed-status-queued =
     { $count ->
-        [one] { $count } izvor čeka i se zagruzi v fonu.
-        [few] { $count } izvora čekajut i se zagruzet v fonu.
-        [many] { $count } izvorov čeka i se zagruzi v fonu.
-       *[other] { $count } izvora čekajut i se zagruzet v fonu.
+        [one] { $count } izvor čeka na zagruzku v fonu.
+        [few] { $count } izvora čekajut na zagruzku v fonu.
+        [many] { $count } izvorov čeka na zagruzku v fonu.
+       *[other] { $count } izvora čekajut na zagruzku v fonu.
     }
 feed-error-permissions =
     { $count ->

@@ -37,8 +37,8 @@ feed-status-failures =
 feed-status-never-refreshed = Der Feed wurde noch nicht aktualisiert.
 feed-status-queued =
     { $count ->
-        [one] { $count } Quelle wartet und wird im Hintergrund geladen.
-       *[other] { $count } Quellen warten und werden im Hintergrund geladen.
+        [one] { $count } Quelle zum Laden im Hintergrund vorgemerkt.
+       *[other] { $count } Quellen zum Laden im Hintergrund vorgemerkt.
     }
 feed-error-permissions =
     { $count ->
